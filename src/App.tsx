@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar, type ActiveTab, type ThemeMode } from './ui/components/Navbar';
+import { Navbar, type DisciplineTab, type ThemeMode } from './ui/components/Navbar';
 import { WorkplaneLab } from './components/WorkplaneLab';
 import { PeriodicTable } from './components/PeriodicTable';
 import { SynthesisReactor } from './components/SynthesisReactor';
@@ -18,19 +18,24 @@ export interface SavedExperimentRun {
   tag: string;
 }
 
+export type ChemistrySubTab = 'workplane' | 'table' | 'reactor' | 'aqueous' | 'validator' | 'runs';
+
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('workplane');
+  // 3 Primary Disciplines: Chemistry | Probability | Physics
+  const [activeDiscipline, setActiveDiscipline] = useState<DisciplineTab>('chemistry');
+  // Secondary sub-navigation within Chemistry
+  const [chemistrySubTab, setChemistrySubTab] = useState<ChemistrySubTab>('workplane');
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(() => PERIODIC_TABLE[0]); // Hydrogen default
 
-  // Playful Green-Black default theme with user toggle support
+  // Themes: chalkboard (classroom dark green) | scientist-dark (slate & cyan) | scientist-light (academic paper)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
-      const saved = localStorage.getItem('simxsphere_theme');
-      if (saved === 'green-black' || saved === 'meadow-green') return saved;
+      const saved = localStorage.getItem('simxsphere_theme') as ThemeMode;
+      if (saved === 'chalkboard' || saved === 'scientist-dark' || saved === 'scientist-light') return saved;
     } catch {
       // ignore
     }
-    return 'green-black';
+    return 'chalkboard';
   });
 
   useEffect(() => {
@@ -38,16 +43,13 @@ export const App: React.FC = () => {
     document.body.setAttribute('data-theme', theme);
   }, [theme]);
 
-  const handleToggleTheme = () => {
-    setTheme((prev) => {
-      const next: ThemeMode = prev === 'green-black' ? 'meadow-green' : 'green-black';
-      try {
-        localStorage.setItem('simxsphere_theme', next);
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+  const handleSelectTheme = (newTheme: ThemeMode) => {
+    setTheme(newTheme);
+    try {
+      localStorage.setItem('simxsphere_theme', newTheme);
+    } catch {
+      // ignore
+    }
   };
 
   // Lab experiment history stored in browser state / localStorage (empty on fresh session)
@@ -116,155 +118,241 @@ export const App: React.FC = () => {
       }}
     >
       <Navbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        activeDiscipline={activeDiscipline}
+        onSelectDiscipline={setActiveDiscipline}
         runCount={labRuns.length}
         theme={theme}
-        onToggleTheme={handleToggleTheme}
+        onSelectTheme={handleSelectTheme}
       />
 
-      <main className="main-content" id="main-lab-viewport" style={{ padding: activeTab === 'workplane' ? 0 : '1.5rem', maxWidth: activeTab === 'workplane' ? '100%' : '1400px' }}>
-        {/* Tab 0: Interactive Drag-and-Drop Workplane */}
-        {activeTab === 'workplane' && (
-          <WorkplaneLab
-            onSaveRun={(title, details, tag) => {
-              handleSaveRun(title, details, tag);
-            }}
-          />
-        )}
+      {/* Chemistry Sub-Navigation Pill Bar (visible when Chemistry discipline is selected) */}
+      {activeDiscipline === 'chemistry' && (
+        <nav className="chemistry-subnav" aria-label="Chemistry Sub Navigation">
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'workplane' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('workplane')}
+            id="subnav-workplane"
+          >
+            <span>🧪</span> Mix & React
+          </button>
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'table' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('table')}
+            id="subnav-table"
+          >
+            <span>🧱</span> Element Blocks
+          </button>
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'reactor' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('reactor')}
+            id="subnav-reactor"
+          >
+            <span>🔮</span> Magic Reactor
+          </button>
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'aqueous' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('aqueous')}
+            id="subnav-aqueous"
+          >
+            <span>💧</span> Color Titration
+          </button>
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'validator' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('validator')}
+            id="subnav-validator"
+          >
+            <span>⚖️</span> Equation Balancer
+          </button>
+          <button
+            type="button"
+            className={`subnav-pill ${chemistrySubTab === 'runs' ? 'active' : ''}`}
+            onClick={() => setChemistrySubTab('runs')}
+            id="subnav-runs"
+          >
+            <span>📓</span> My Discoveries
+            {labRuns.length > 0 && (
+              <span
+                style={{
+                  background: 'var(--sticky-yellow)',
+                  color: 'var(--sticky-yellow-text)',
+                  border: '1px solid var(--wood-frame)',
+                  borderRadius: 10,
+                  padding: '1px 6px',
+                  fontSize: 10,
+                  fontWeight: 900,
+                  marginLeft: 4,
+                }}
+              >
+                {labRuns.length}
+              </span>
+            )}
+          </button>
+        </nav>
+      )}
 
-        {/* Tab 1: Interactive Periodic Table */}
-        {activeTab === 'table' && (
-          <PeriodicTable
-            selectedElement={selectedElement}
-            onSelectElement={(el) => setSelectedElement(el)}
-            onAddToReactor={(_el) => {
-              setActiveTab('reactor');
-            }}
-          />
-        )}
+      <main
+        className="main-content"
+        id="main-lab-viewport"
+        style={{
+          padding: activeDiscipline === 'chemistry' && chemistrySubTab === 'workplane' ? 0 : '1.5rem',
+          maxWidth: activeDiscipline === 'chemistry' && chemistrySubTab === 'workplane' ? '100%' : '1400px',
+        }}
+      >
+        {/* ===================================================================
+            1. CHEMISTRY DISCIPLINE (Contains Workplane, Periodic Table, Reactor, Aqueous, Balancer, Discoveries)
+            =================================================================== */}
+        {activeDiscipline === 'chemistry' && (
+          <>
+            {/* Sub-Tab 0: Interactive Drag-and-Drop Workplane */}
+            {chemistrySubTab === 'workplane' && (
+              <WorkplaneLab
+                onSaveRun={(title, details, tag) => {
+                  handleSaveRun(title, details, tag);
+                }}
+              />
+            )}
 
-        {/* Tab 2: Elemental Synthesis Reactor */}
-        {activeTab === 'reactor' && (
-          <SynthesisReactor
-            onSaveCompoundExperiment={(title, eq, _formula) => {
-              handleSaveRun(title, eq, 'Synthesis');
-            }}
-          />
-        )}
+            {/* Sub-Tab 1: Interactive Periodic Table */}
+            {chemistrySubTab === 'table' && (
+              <PeriodicTable
+                selectedElement={selectedElement}
+                onSelectElement={(el) => setSelectedElement(el)}
+                onAddToReactor={(_el) => {
+                  setChemistrySubTab('reactor');
+                }}
+              />
+            )}
 
-        {/* Tab 3: Aqueous Reaction & Titration Vessel */}
-        {activeTab === 'aqueous' && (
-          <ChemistryView
-            onSaveExperiment={(exp) => {
-              handleSaveRun(exp.title, exp.description || '', 'Aqueous');
-            }}
-          />
-        )}
+            {/* Sub-Tab 2: Elemental Synthesis Reactor */}
+            {chemistrySubTab === 'reactor' && (
+              <SynthesisReactor
+                onSaveCompoundExperiment={(title, eq, _formula) => {
+                  handleSaveRun(title, eq, 'Synthesis');
+                }}
+              />
+            )}
 
-        {/* Tab 4: Chemical Equation Validator */}
-        {activeTab === 'validator' && <EquationValidatorView />}
+            {/* Sub-Tab 3: Aqueous Reaction & Titration Vessel */}
+            {chemistrySubTab === 'aqueous' && (
+              <ChemistryView
+                onSaveExperiment={(exp) => {
+                  handleSaveRun(exp.title, exp.description || '', 'Aqueous');
+                }}
+              />
+            )}
 
-        {/* Tab 5: Lab Experiment History */}
-        {activeTab === 'runs' && (
-          <div className="lab-card" style={{ padding: 22 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div>
-                <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)' }}>📓 My Science Discoveries ({labRuns.length})</h2>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
-                  All the wonderful compounds and colorful reactions you have discovered!
-                </p>
-              </div>
+            {/* Sub-Tab 4: Chemical Equation Validator */}
+            {chemistrySubTab === 'validator' && <EquationValidatorView />}
 
-              {labRuns.length > 0 && (
-                <button
-                  type="button"
-                  className="lab-btn lab-btn-danger"
-                  onClick={handleClearAllRuns}
-                >
-                  Clear All Discoveries
-                </button>
-              )}
-            </div>
+            {/* Sub-Tab 5: Lab Experiment History */}
+            {chemistrySubTab === 'runs' && (
+              <div className="lab-card" style={{ padding: 22 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <div>
+                    <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>📓 My Science Discoveries ({labRuns.length})</h2>
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
+                      All the wonderful compounds and colorful reactions you have discovered!
+                    </p>
+                  </div>
 
-            {labRuns.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '44px 16px', color: '#166534', fontFamily: 'var(--font-display)', fontSize: 16 }}>
-                🎈 No discoveries recorded yet! Try mixing elements in the <strong>Mix & React Lab</strong> or pouring colorful solutions in <strong>Color Titration</strong> to save your first experiment!
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {labRuns.map((run) => (
-                  <div
-                    key={run.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      borderRadius: 6,
-                      background: '#ffffff',
-                      border: '1px solid var(--border-light)',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span
-                          className="lab-badge"
-                          style={{
-                            background:
-                              run.tag === 'Synthesis'
-                                ? '#eff6ff'
-                                : run.tag === 'Probability'
-                                ? '#fdf2f8'
-                                : run.tag === 'Projectile'
-                                ? '#f5f3ff'
-                                : '#ecfdf5',
-                            color:
-                              run.tag === 'Synthesis'
-                                ? '#1d4ed8'
-                                : run.tag === 'Probability'
-                                ? '#9d174d'
-                                : run.tag === 'Projectile'
-                                ? '#6d28d9'
-                                : '#065f46',
-                            border: `1px solid ${
-                              run.tag === 'Synthesis'
-                                ? '#bfdbfe'
-                                : run.tag === 'Probability'
-                                ? '#fbcfe8'
-                                : run.tag === 'Projectile'
-                                ? '#ddd6fe'
-                                : '#a7f3d0'
-                            }`,
-                          }}
-                        >
-                          {run.tag}
-                        </span>
-                        <strong style={{ fontSize: 15, color: '#ffffff' }}>{run.title}</strong>
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.timestamp}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-                        {run.details}
-                      </div>
-                    </div>
-
+                  {labRuns.length > 0 && (
                     <button
                       type="button"
-                      className="lab-btn lab-btn-secondary"
-                      style={{ fontSize: 12, padding: '4px 10px' }}
-                      onClick={() => handleDeleteRun(run.id)}
+                      className="lab-btn lab-btn-danger"
+                      onClick={handleClearAllRuns}
                     >
-                      Delete
+                      Clear All Discoveries
                     </button>
+                  )}
+                </div>
+
+                {labRuns.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '44px 16px', color: 'var(--status-neutral)', fontFamily: 'var(--font-display)', fontSize: 16 }}>
+                    🎈 No discoveries recorded yet! Try mixing elements in the <strong>Mix & React Lab</strong> or pouring colorful solutions in <strong>Color Titration</strong> to save your first experiment!
                   </div>
-                ))}
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {labRuns.map((run) => (
+                      <div
+                        key={run.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 16px',
+                          borderRadius: 6,
+                          background: 'var(--lab-surface)',
+                          border: '1.5px solid var(--wood-frame)',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span
+                              className="lab-badge"
+                              style={{
+                                background:
+                                  run.tag === 'Synthesis'
+                                    ? '#eff6ff'
+                                    : run.tag === 'Probability'
+                                    ? '#fdf2f8'
+                                    : run.tag === 'Physics' || run.tag === 'Projectile'
+                                    ? '#f5f3ff'
+                                    : '#ecfdf5',
+                                color:
+                                  run.tag === 'Synthesis'
+                                    ? '#1d4ed8'
+                                    : run.tag === 'Probability'
+                                    ? '#9d174d'
+                                    : run.tag === 'Physics' || run.tag === 'Projectile'
+                                    ? '#6d28d9'
+                                    : '#065f46',
+                                border: `1px solid ${
+                                  run.tag === 'Synthesis'
+                                    ? '#bfdbfe'
+                                    : run.tag === 'Probability'
+                                    ? '#fbcfe8'
+                                    : run.tag === 'Physics' || run.tag === 'Projectile'
+                                    ? '#ddd6fe'
+                                    : '#a7f3d0'
+                                }`,
+                              }}
+                            >
+                              {run.tag}
+                            </span>
+                            <strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>{run.title}</strong>
+                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.timestamp}</span>
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                            {run.details}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="lab-btn lab-btn-secondary"
+                          style={{ fontSize: 12, padding: '4px 10px' }}
+                          onClick={() => handleDeleteRun(run.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Tab 6: Independent Probability Simulations */}
-        {activeTab === 'probability' && (
+        {/* ===================================================================
+            2. PROBABILITY DISCIPLINE (Independent Probability Experiments)
+            =================================================================== */}
+        {activeDiscipline === 'probability' && (
           <ProbabilityView
             onSaveExperiment={(exp) => {
               handleSaveRun(
@@ -276,14 +364,16 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Tab 7: Independent Projectile Kinematics */}
-        {activeTab === 'projectile' && (
+        {/* ===================================================================
+            3. PHYSICS DISCIPLINE (Independent Physics Kinematics & Rocket Launch)
+            =================================================================== */}
+        {activeDiscipline === 'physics' && (
           <ProjectileView
             onSaveExperiment={(exp) => {
               handleSaveRun(
                 exp.title,
                 `Launch: ${exp.parameters.initialSpeed} m/s @ ${exp.parameters.angleDeg}° • g = ${exp.parameters.gravity} m/s² • Range: ${exp.results.range.toFixed(1)}m`,
-                'Projectile'
+                'Physics'
               );
             }}
           />

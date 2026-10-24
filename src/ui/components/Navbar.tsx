@@ -1,155 +1,139 @@
 import React from 'react';
 
-export type ActiveTab =
-  | 'workplane'
-  | 'table'
-  | 'reactor'
-  | 'aqueous'
-  | 'validator'
-  | 'runs'
-  | 'probability'
-  | 'projectile';
-
-export type ThemeMode = 'green-black' | 'meadow-green';
+export type DisciplineTab = 'chemistry' | 'probability' | 'physics';
+export type ActiveTab = DisciplineTab; // Backward compatibility
+export type ThemeMode = 'chalkboard' | 'scientist-dark' | 'scientist-light' | 'green-black';
 
 interface NavbarProps {
-  activeTab: ActiveTab;
-  onSelectTab: (tab: ActiveTab) => void;
+  activeDiscipline: DisciplineTab;
+  onSelectDiscipline: (discipline: DisciplineTab) => void;
   runCount: number;
-  theme?: ThemeMode;
-  onToggleTheme?: () => void;
+  theme: ThemeMode;
+  onSelectTheme: (theme: ThemeMode) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  activeTab,
-  onSelectTab,
+  activeDiscipline,
+  onSelectDiscipline,
   runCount,
-  theme = 'green-black',
-  onToggleTheme,
+  theme = 'chalkboard',
+  onSelectTheme,
 }) => {
+  const isChalkboard = theme === 'chalkboard' || theme === 'green-black';
+  const isScientistDark = theme === 'scientist-dark';
+  const isScientistLight = theme === 'scientist-light';
+
   return (
     <header className="lab-navbar" id="app-header">
-      <div className="lab-brand" onClick={() => onSelectTab('workplane')} id="brand-logo" style={{ cursor: 'pointer' }}>
+      <div
+        className="lab-brand"
+        onClick={() => onSelectDiscipline('chemistry')}
+        id="brand-logo"
+        style={{ cursor: 'pointer' }}
+      >
         <div className="lab-brand-icon">
-          {theme === 'green-black' ? '⚡' : '🌱'}
+          {isChalkboard ? '🏫' : isScientistDark ? '🔬' : '☀️'}
         </div>
         <div>
           <span className="lab-brand-title">SimXSphere</span>
-          <span className="lab-badge brand-theme-badge" style={{ marginLeft: 8, fontSize: '12px', fontWeight: 800 }}>
-            {theme === 'green-black' ? '🏫 Chalkboard Lab' : '🌱 Meadow Green'}
+          <span className="lab-badge brand-theme-badge" style={{ marginLeft: 8, fontSize: '11px', fontWeight: 800 }}>
+            {isChalkboard
+              ? '🏫 Classroom Chalkboard'
+              : isScientistDark
+              ? '🔬 Scientist Dark Lab'
+              : '☀️ Scientist Light Lab'}
           </span>
         </div>
       </div>
 
-      <nav className="lab-nav-tabs" aria-label="Main Navigation" style={{ flexWrap: 'wrap' }}>
+      {/* ONLY 3 DISCIPLINE TABS: CHEMISTRY | PROBABILITY | PHYSICS */}
+      <nav className="lab-nav-tabs" aria-label="Main Navigation">
         <button
-          id="nav-tab-workplane"
-          className={`lab-nav-tab ${activeTab === 'workplane' ? 'active' : ''}`}
-          onClick={() => onSelectTab('workplane')}
-          title="Interactive Chemistry Workplane"
+          id="nav-tab-chemistry"
+          className={`lab-nav-tab ${activeDiscipline === 'chemistry' ? 'active' : ''}`}
+          onClick={() => onSelectDiscipline('chemistry')}
+          title="Chemistry Laboratory Projects"
         >
           <span>🧪</span>
-          Mix & React
-        </button>
-
-        <button
-          id="nav-tab-table"
-          className={`lab-nav-tab ${activeTab === 'table' ? 'active' : ''}`}
-          onClick={() => onSelectTab('table')}
-          title="118-Element Periodic Table"
-        >
-          <span>🧱</span>
-          Element Blocks
-        </button>
-
-        <button
-          id="nav-tab-reactor"
-          className={`lab-nav-tab ${activeTab === 'reactor' ? 'active' : ''}`}
-          onClick={() => onSelectTab('reactor')}
-          title="Compound Synthesis Reactor"
-        >
-          <span>⚗️</span>
-          Magic Reactor
-        </button>
-
-        <button
-          id="nav-tab-aqueous"
-          className={`lab-nav-tab ${activeTab === 'aqueous' ? 'active' : ''}`}
-          onClick={() => onSelectTab('aqueous')}
-          title="Aqueous Solutions and Titration"
-        >
-          <span>💧</span>
-          Color Titration
-        </button>
-
-        <button
-          id="nav-tab-validator"
-          className={`lab-nav-tab ${activeTab === 'validator' ? 'active' : ''}`}
-          onClick={() => onSelectTab('validator')}
-          title="Stoichiometry & Equation Balance"
-        >
-          <span>⚖️</span>
-          Equation Balancer
-        </button>
-
-        <button
-          id="nav-tab-runs"
-          className={`lab-nav-tab ${activeTab === 'runs' ? 'active' : ''}`}
-          onClick={() => onSelectTab('runs')}
-          title="Chemistry Laboratory Notebook"
-        >
-          <span>📓</span>
-          My Discoveries
+          Chemistry
           {runCount > 0 && (
-            <span className="lab-badge" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #facc15', padding: '1px 7px', fontSize: 11, borderRadius: 10 }}>
+            <span
+              className="lab-badge"
+              style={{
+                background: 'var(--sticky-yellow)',
+                color: 'var(--sticky-yellow-text)',
+                border: '1px solid var(--wood-frame)',
+                padding: '1px 6px',
+                fontSize: 10,
+                borderRadius: 10,
+                fontWeight: 900,
+                marginLeft: 4,
+              }}
+            >
               {runCount}
             </span>
           )}
         </button>
 
-        <div style={{ width: 2, background: 'var(--border-medium)', margin: '4px 6px', borderRadius: 2 }} aria-hidden="true" />
-
-        {/* Secondary Independent Modules */}
         <button
           id="nav-tab-probability"
-          className={`lab-nav-tab ${activeTab === 'probability' ? 'active' : ''}`}
-          onClick={() => onSelectTab('probability')}
+          className={`lab-nav-tab ${activeDiscipline === 'probability' ? 'active' : ''}`}
+          onClick={() => onSelectDiscipline('probability')}
           title="Independent Probability Experiments"
         >
           <span>🎲</span>
-          Lucky Dice Lab
+          Probability
         </button>
 
         <button
-          id="nav-tab-projectile"
-          className={`lab-nav-tab ${activeTab === 'projectile' ? 'active' : ''}`}
-          onClick={() => onSelectTab('projectile')}
-          title="Independent Projectile Kinematics"
+          id="nav-tab-physics"
+          className={`lab-nav-tab ${activeDiscipline === 'physics' ? 'active' : ''}`}
+          onClick={() => onSelectDiscipline('physics')}
+          title="Independent Physics Kinematics & Rocket Launch"
         >
           <span>🚀</span>
-          Rocket Launch
+          Physics
         </button>
       </nav>
 
+      {/* THEME SELECTOR: CHALKBOARD | SCIENTIST DARK | SCIENTIST LIGHT */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {onToggleTheme && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--lab-surface-subtle)',
+            padding: '3px',
+            borderRadius: '24px',
+            border: '1.5px solid var(--wood-frame)',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+          }}
+        >
           <button
             type="button"
-            className="lab-btn lab-btn-secondary theme-toggle-btn"
-            onClick={onToggleTheme}
-            title="Toggle theme between Green-Black and Meadow-Green"
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              fontWeight: 800,
-            }}
+            className={`theme-pill ${isChalkboard ? 'active' : ''}`}
+            onClick={() => onSelectTheme('chalkboard')}
+            title="Classroom Chalkboard Theme (Dark Green Blackboard & Honey Wood Frame)"
           >
-            {theme === 'green-black' ? '🏫 Chalkboard' : '🌱 Meadow Green'}
+            🏫 Chalkboard
           </button>
-        )}
-        <span className="lab-badge mode-badge">
-          🎈 100% Free Fun Lab
-        </span>
+          <button
+            type="button"
+            className={`theme-pill ${isScientistDark ? 'active' : ''}`}
+            onClick={() => onSelectTheme('scientist-dark')}
+            title="Scientist Dark Theme (High-Tech Observatory Slate & Cyan)"
+          >
+            🔬 Scientist Dark
+          </button>
+          <button
+            type="button"
+            className={`theme-pill ${isScientistLight ? 'active' : ''}`}
+            onClick={() => onSelectTheme('scientist-light')}
+            title="Scientist Light Theme (Clean Academic Laboratory Paper)"
+          >
+            ☀️ Scientist Light
+          </button>
+        </div>
       </div>
     </header>
   );

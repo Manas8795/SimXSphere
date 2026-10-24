@@ -84,6 +84,196 @@
   --shadow-float: 0 8px 0 #8f5315, 0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
+/* ===================================================================
+   Scientist Dark Theme (High-Tech Observatory Dark Mode)
+   =================================================================== */
+[data-theme="scientist-dark"] {
+  --lab-bg: #090e17;
+  --lab-surface: #0f172a;
+  --lab-surface-subtle: #1e293b;
+  --lab-surface-hover: #334155;
+  --card-bg: #0f172a;
+
+  --wood-frame: #38bdf8;
+  --wood-bevel: #0284c7;
+  --wood-shadow: #0369a1;
+  --wood-highlight: #7dd3fc;
+
+  --sticky-yellow: #f59e0b;
+  --sticky-yellow-text: #0f172a;
+  --sticky-blue: #0284c7;
+  --sticky-blue-text: #ffffff;
+
+  --text-primary: #f8fafc;
+  --lab-text: #f8fafc;
+  --text-secondary: #38bdf8;
+  --text-muted: #94a3b8;
+  --lab-text-muted: #94a3b8;
+  --text-subtle: #67e8f9;
+
+  --lab-border: #38bdf8;
+  --border-light: #1e293b;
+  --border-medium: #38bdf8;
+  --border-focus: #38bdf8;
+
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --primary-active: #0c4a6e;
+  --primary-subtle: #1e293b;
+
+  --shadow-sm: 0 3px 0 #0284c7, 0 4px 10px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 5px 0 #0284c7, 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-float: 0 8px 0 #0369a1, 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="scientist-dark"] body {
+  background-color: #090e17;
+  background-image: 
+    radial-gradient(rgba(56, 189, 248, 0.15) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+  background-size: 28px 28px, 100% 100%, 100% 100%;
+}
+
+/* ===================================================================
+   Scientist Light Theme (Clean Academic Laboratory Paper)
+   =================================================================== */
+[data-theme="scientist-light"] {
+  --lab-bg: #f8fafc;
+  --lab-surface: #ffffff;
+  --lab-surface-subtle: #f1f5f9;
+  --lab-surface-hover: #e2e8f0;
+  --card-bg: #ffffff;
+
+  --wood-frame: #2563eb;
+  --wood-bevel: #1d4ed8;
+  --wood-shadow: #1e40af;
+  --wood-highlight: #60a5fa;
+
+  --sticky-yellow: #fef08a;
+  --sticky-yellow-text: #854d0e;
+  --sticky-blue: #dbeafe;
+  --sticky-blue-text: #1e40af;
+
+  --text-primary: #0f172a;
+  --lab-text: #0f172a;
+  --text-secondary: #2563eb;
+  --text-muted: #64748b;
+  --lab-text-muted: #64748b;
+  --text-subtle: #3b82f6;
+
+  --lab-border: #cbd5e1;
+  --border-light: #e2e8f0;
+  --border-medium: #2563eb;
+  --border-focus: #2563eb;
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-subtle: #eff6ff;
+
+  --shadow-sm: 0 3px 0 #1d4ed8, 0 4px 10px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 5px 0 #1d4ed8, 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-float: 0 8px 0 #1e40af, 0 16px 36px rgba(0, 0, 0, 0.14);
+}
+
+[data-theme="scientist-light"] body {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(rgba(100, 116, 139, 0.22) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.04) 0%, transparent 40%);
+  background-size: 24px 24px, 100% 100%;
+}
+
+[data-theme="scientist-light"] h1,
+[data-theme="scientist-light"] h2,
+[data-theme="scientist-light"] h3,
+[data-theme="scientist-light"] h4,
+[data-theme="scientist-light"] h5,
+[data-theme="scientist-light"] h6 {
+  color: #0f172a !important;
+}
+
+[data-theme="scientist-light"] p {
+  color: #334155 !important;
+}
+
+[data-theme="scientist-light"] .lab-input,
+[data-theme="scientist-light"] .lab-select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}
+
+/* ===================================================================
+   Chemistry Sub-Navigation Bar & Theme Switcher
+   =================================================================== */
+.chemistry-subnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 1.5rem;
+  background: var(--lab-surface);
+  border-bottom: 2.5px solid var(--wood-frame);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.subnav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--lab-surface-subtle);
+  border: 1.5px solid var(--wood-frame);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.subnav-pill:hover {
+  background: var(--primary);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.subnav-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--wood-bevel);
+  box-shadow: 0 3px 0 var(--wood-bevel);
+}
+
+.theme-pill {
+  padding: 5px 11px;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.theme-pill:hover {
+  color: var(--text-primary);
+}
+
+.theme-pill.active {
+  background: var(--primary);
+  color: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
