@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Navbar, type ActiveTab } from './ui/components/Navbar';
+import React, { useState, useEffect } from 'react';
+import { Navbar, type ActiveTab, type ThemeMode } from './ui/components/Navbar';
 import { WorkplaneLab } from './components/WorkplaneLab';
 import { PeriodicTable } from './components/PeriodicTable';
 import { SynthesisReactor } from './components/SynthesisReactor';
@@ -21,6 +21,34 @@ export interface SavedExperimentRun {
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('workplane');
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(() => PERIODIC_TABLE[0]); // Hydrogen default
+
+  // Playful Green-Black default theme with user toggle support
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem('simxsphere_theme');
+      if (saved === 'green-black' || saved === 'meadow-green') return saved;
+    } catch {
+      // ignore
+    }
+    return 'green-black';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const next: ThemeMode = prev === 'green-black' ? 'meadow-green' : 'green-black';
+      try {
+        localStorage.setItem('simxsphere_theme', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Lab experiment history stored in browser state / localStorage (empty on fresh session)
   const [labRuns, setLabRuns] = useState<SavedExperimentRun[]>(() => {
@@ -76,11 +104,23 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--lab-bg)' }}>
+    <div
+      data-theme={theme}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        background: 'var(--lab-bg)',
+        color: 'var(--text-primary)',
+        transition: 'background 0.25s ease, color 0.25s ease',
+      }}
+    >
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         runCount={labRuns.length}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       <main className="main-content" id="main-lab-viewport" style={{ padding: activeTab === 'workplane' ? 0 : '1.5rem', maxWidth: activeTab === 'workplane' ? '100%' : '1400px' }}>

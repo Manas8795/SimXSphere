@@ -10,27 +10,33 @@ export type ActiveTab =
   | 'probability'
   | 'projectile';
 
+export type ThemeMode = 'green-black' | 'meadow-green';
+
 interface NavbarProps {
   activeTab: ActiveTab;
   onSelectTab: (tab: ActiveTab) => void;
   runCount: number;
+  theme?: ThemeMode;
+  onToggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
   runCount,
+  theme = 'green-black',
+  onToggleTheme,
 }) => {
   return (
     <header className="lab-navbar" id="app-header">
       <div className="lab-brand" onClick={() => onSelectTab('workplane')} id="brand-logo" style={{ cursor: 'pointer' }}>
         <div className="lab-brand-icon">
-          🌱
+          {theme === 'green-black' ? '⚡' : '🌱'}
         </div>
         <div>
           <span className="lab-brand-title">SimXSphere</span>
-          <span className="lab-badge" style={{ background: '#dcfce7', color: '#166534', border: '1.5px solid #86efac', marginLeft: 8, fontSize: '12px', fontWeight: 800 }}>
-            🧪 Kids Chemistry Fun Lab!
+          <span className="lab-badge brand-theme-badge" style={{ marginLeft: 8, fontSize: '12px', fontWeight: 800 }}>
+            {theme === 'green-black' ? '⚡ Cyber Green-Black Lab!' : '🧪 Kids Chemistry Fun Lab!'}
           </span>
         </div>
       </div>
@@ -126,7 +132,22 @@ export const Navbar: React.FC<NavbarProps> = ({
       </nav>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span className="lab-badge" style={{ background: '#dcfce7', color: '#14532d', border: '1.5px solid #86efac' }}>
+        {onToggleTheme && (
+          <button
+            type="button"
+            className="lab-btn lab-btn-secondary theme-toggle-btn"
+            onClick={onToggleTheme}
+            title="Toggle theme between Green-Black and Meadow-Green"
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: 800,
+            }}
+          >
+            {theme === 'green-black' ? '⚡ Green-Black' : '🌱 Meadow Green'}
+          </button>
+        )}
+        <span className="lab-badge mode-badge">
           🎈 100% Free Fun Lab
         </span>
       </div>
