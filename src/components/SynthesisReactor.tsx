@@ -41,7 +41,8 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
     { label: 'Carbon Dioxide (CO₂)', items: [{ symbol: 'C', ratio: 1 }, { symbol: 'O', ratio: 2 }] },
     { label: 'Methane (CH₄)', items: [{ symbol: 'C', ratio: 1 }, { symbol: 'H', ratio: 4 }] },
     { label: 'Ammonia (NH₃)', items: [{ symbol: 'N', ratio: 1 }, { symbol: 'H', ratio: 3 }] },
-    { label: 'Rust (Iron Oxide)', items: [{ symbol: 'Fe', ratio: 1 }, { symbol: 'S', ratio: 1 }] },
+    { label: 'Iron(II) Sulfide (FeS)', items: [{ symbol: 'Fe', ratio: 1 }, { symbol: 'S', ratio: 1 }] },
+    { label: 'Rust / Iron(III) Oxide (Fe₂O₃)', items: [{ symbol: 'Fe', ratio: 2 }, { symbol: 'O', ratio: 3 }] },
     { label: 'Calcium Chloride (CaCl₂)', items: [{ symbol: 'Ca', ratio: 1 }, { symbol: 'Cl', ratio: 2 }] },
     { label: 'Alumina (Al₂O₃)', items: [{ symbol: 'Al', ratio: 2 }, { symbol: 'O', ratio: 3 }] },
   ];
@@ -393,9 +394,23 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
                   <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Standard Enthalpy (ΔH)</span>
                     <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: compound.isExothermic ? '#b45309' : '#047857' }}>
-                      {compound.energyChangeKj} kJ/mol ({compound.isExothermic ? 'Exothermic' : 'Endothermic'})
+                      {compound.energyChangeKj !== null
+                        ? `${compound.energyChangeKj} kJ/mol (${compound.isExothermic ? 'Exothermic' : 'Endothermic'})`
+                        : 'Unmeasured (Candidate model)'}
                     </div>
                   </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
+                  {compound.isCurated ? (
+                    <span className="lab-badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', fontSize: 11 }}>
+                      ✓ Verified Curated Data ({compound.provenance || 'NIST'})
+                    </span>
+                  ) : (
+                    <span className="lab-badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontSize: 11 }}>
+                      Valence-Model Candidate Exercise
+                    </span>
+                  )}
                 </div>
 
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, background: '#f1f5f9', padding: 12, borderRadius: 6 }}>

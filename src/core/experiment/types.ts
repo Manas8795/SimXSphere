@@ -8,7 +8,7 @@ export const SCHEMA_VERSION = 1;
 export const APP_VERSION = '1.0.0';
 export const SIMXPACK_FORMAT_VERSION = 1;
 
-export type ExperimentType = 'probability' | 'projectile';
+export type ExperimentType = 'chemistry' | 'probability' | 'projectile';
 
 export interface BaseExperiment {
   schemaVersion: 1;
@@ -22,6 +22,47 @@ export interface BaseExperiment {
     notes?: string; // <= 500 chars
     importedFromId?: string; // previous id if imported as copy
   };
+}
+
+export interface ChemistryReagentInput {
+  formula: string;
+  name: string;
+  volumeMl?: number;
+  concentrationM?: number;
+  massGrams?: number;
+  ratio?: number;
+}
+
+export interface ChemistryParameters {
+  mode: 'synthesis' | 'aqueous' | 'stoichiometry' | 'workplane';
+  reactants: ChemistryReagentInput[];
+  reactionId?: string;
+  conditions?: {
+    temperatureC?: number;
+    pressureAtm?: number;
+    solvent?: string;
+  };
+}
+
+export interface ChemistryResults {
+  reactionType: string;
+  balancedEquation: string;
+  products: string[];
+  isConserved: boolean;
+  finalPh?: number | null;
+  temperatureChangeC?: number | null;
+  precipitate?: string | null;
+  gasEvolved?: string | null;
+  enthalpyKj?: number | null;
+  isCurated: boolean;
+  provenance: string;
+  notes?: string;
+}
+
+export interface ChemistryExperiment extends BaseExperiment {
+  type: 'chemistry';
+  parameters: ChemistryParameters;
+  results: ChemistryResults;
 }
 
 export interface ProbabilityParameters {
@@ -61,7 +102,7 @@ export interface ProjectileExperiment extends BaseExperiment {
   results: ProjectileResults;
 }
 
-export type ExperimentRun = ProbabilityExperiment | ProjectileExperiment;
+export type ExperimentRun = ChemistryExperiment | ProbabilityExperiment | ProjectileExperiment;
 
 /**
  * SimXPack Manifest Types (SIMXPACK_SPEC formatVersion 1)

@@ -109,4 +109,52 @@ describe('Local Storage Run History Tests (U-S1 - U-S4, U-L1)', () => {
     expect(list[0].id).toBe(expNewer.id);
     expect(list[1].id).toBe(expOlder.id);
   });
+
+  it('U-S5: Save valid chemistry experiment -> retrieves identical canonical JSON and deletes cleanly', async () => {
+    const validChemistryExp: import('../../src/core/experiment/types').ChemistryExperiment = {
+      schemaVersion: 1,
+      id: '3c8e1a90-8d54-43b2-9d82-9a0d84f721bc',
+      type: 'chemistry',
+      title: 'Aqueous: Hydrochloric acid + Sodium hydroxide',
+      description: 'Acid-Base Neutralization: HCl + NaOH → NaCl + H2O. Final pH: 7.00',
+      createdAt: '2026-10-24T12:00:00.000Z',
+      appVersion: '1.0.0',
+      parameters: {
+        mode: 'aqueous',
+        reactants: [
+          { formula: 'HCl', name: 'Hydrochloric acid', volumeMl: 50, concentrationM: 1.0 },
+          { formula: 'NaOH', name: 'Sodium hydroxide', volumeMl: 50, concentrationM: 1.0 },
+        ],
+        conditions: {
+          temperatureC: 25,
+          solvent: 'H2O',
+        },
+      },
+      results: {
+        reactionType: 'Acid-Base Neutralization',
+        balancedEquation: 'HCl + NaOH → NaCl + H2O',
+        products: ['NaCl(aq)', 'H2O(l)'],
+        isConserved: true,
+        finalPh: 7.0,
+        temperatureChangeC: 2.4,
+        precipitate: null,
+        gasEvolved: null,
+        enthalpyKj: -57.3,
+        isCurated: true,
+        provenance: 'SimXSphere Curated Physical Chemistry Engine',
+      },
+    };
+
+    await adapter.saveExperiment(validChemistryExp);
+    const retrieved = await adapter.getExperiment(validChemistryExp.id);
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.type).toBe('chemistry');
+    expect(areCanonicallyEqual(validChemistryExp, retrieved!)).toBe(true);
+
+    const list = await adapter.listExperiments();
+    expect(list.some((e) => e.id === validChemistryExp.id && e.type === 'chemistry')).toBe(true);
+
+    await adapter.deleteExperiment(validChemistryExp.id);
+    expect(await adapter.getExperiment(validChemistryExp.id)).toBeNull();
+  });
 });

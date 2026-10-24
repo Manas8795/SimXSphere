@@ -93,6 +93,9 @@ describe('Fundamental Chemistry Simulation Tests', () => {
     expect(tiCl.success).toBe(true);
     expect(tiCl.compound?.formula).toBe('TiCl4');
     expect(tiCl.compound?.commonName).toContain('chloride');
+    expect(tiCl.compound?.isCurated).toBe(false);
+    expect(tiCl.compound?.energyChangeKj).toBeNull();
+    expect(tiCl.compound?.description).toContain('Candidate-formula valence exercise');
 
     // Calcium Nitride Ca3N2
     const caN = synthesizeCompoundFromElements([
@@ -134,5 +137,29 @@ describe('Fundamental Chemistry Simulation Tests', () => {
     ]);
     expect(invalidRatio.success).toBe(false);
     expect(invalidRatio.unsupportedReason).toContain('Ca3N2');
+  });
+
+  it('correctly distinguishes Iron(II) Sulfide (FeS) from Iron(III) Oxide (Fe2O3 / Rust)', () => {
+    // Fe + S (1:1) -> FeS (Iron Sulfide)
+    const feS = synthesizeCompoundFromElements([
+      { symbol: 'Fe', ratio: 1 },
+      { symbol: 'S', ratio: 1 },
+    ]);
+    expect(feS.success).toBe(true);
+    expect(feS.compound?.formula).toBe('FeS');
+    expect(feS.compound?.commonName).toBe('Iron Sulfide');
+    expect(feS.compound?.isCurated).toBe(true);
+    expect(feS.compound?.energyChangeKj).toBe(-100.0);
+
+    // Fe + O (2:3) -> Fe2O3 (Rust / Iron(III) Oxide)
+    const fe2O3 = synthesizeCompoundFromElements([
+      { symbol: 'Fe', ratio: 2 },
+      { symbol: 'O', ratio: 3 },
+    ]);
+    expect(fe2O3.success).toBe(true);
+    expect(fe2O3.compound?.formula).toBe('Fe2O3');
+    expect(fe2O3.compound?.commonName).toContain('Rust');
+    expect(fe2O3.compound?.isCurated).toBe(true);
+    expect(fe2O3.compound?.energyChangeKj).toBe(-824.2);
   });
 });

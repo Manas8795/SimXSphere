@@ -7,6 +7,9 @@ import { ChemistryView } from './ui/views/ChemistryView';
 import { EquationValidatorView } from './components/EquationValidator';
 import { PERIODIC_TABLE, type ChemicalElement } from './chemistry-data/elements';
 
+import { ProbabilityView } from './ui/views/ProbabilityView';
+import { ProjectileView } from './ui/views/ProjectileView';
+
 export interface SavedExperimentRun {
   id: string;
   title: string;
@@ -19,7 +22,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('workplane');
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(() => PERIODIC_TABLE[0]); // Hydrogen default
 
-  // Lab experiment history stored in browser state / localStorage
+  // Lab experiment history stored in browser state / localStorage (empty on fresh session)
   const [labRuns, setLabRuns] = useState<SavedExperimentRun[]>(() => {
     try {
       const saved = localStorage.getItem('simxsphere_lab_runs');
@@ -27,22 +30,7 @@ export const App: React.FC = () => {
     } catch {
       // Fallback
     }
-    return [
-      {
-        id: 'run-init-1',
-        title: 'Synthesis: H2O (Water)',
-        details: '2H₂(g) + O₂(g) → 2H₂O(l) • Covalent Polar Bond • ΔH = -285.8 kJ/mol',
-        timestamp: new Date().toLocaleTimeString(),
-        tag: 'Synthesis',
-      },
-      {
-        id: 'run-init-2',
-        title: 'Aqueous: HCl + NaOH Neutralization',
-        details: 'HCl(aq) + NaOH(aq) → NaCl(aq) + H2O(l) • Final pH: 7.00 • ΔT: +2.4°C',
-        timestamp: new Date().toLocaleTimeString(),
-        tag: 'Aqueous',
-      },
-    ];
+    return [];
   });
 
   const handleSaveRun = (title: string, details: string, tag: string) => {
@@ -53,32 +41,38 @@ export const App: React.FC = () => {
       timestamp: new Date().toLocaleTimeString(),
       tag,
     };
-    const updated = [newRun, ...labRuns];
-    setLabRuns(updated);
-    try {
-      localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
-    } catch {
-      // localStorage may be disabled
-    }
+    setLabRuns((prev) => {
+      const updated = [newRun, ...prev];
+      try {
+        localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
+      } catch {
+        // localStorage may be disabled or full
+      }
+      return updated;
+    });
   };
 
   const handleDeleteRun = (id: string) => {
-    const updated = labRuns.filter((r) => r.id !== id);
-    setLabRuns(updated);
-    try {
-      localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
+    setLabRuns((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      try {
+        localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
   };
 
   const handleClearAllRuns = () => {
-    setLabRuns([]);
-    try {
-      localStorage.removeItem('simxsphere_lab_runs');
-    } catch {
-      // ignore
-    }
+    setLabRuns(() => {
+      try {
+        localStorage.removeItem('simxsphere_lab_runs');
+      } catch {
+        // ignore
+      }
+      return [];
+    });
   };
 
   return (
@@ -177,9 +171,31 @@ export const App: React.FC = () => {
                         <span
                           className="lab-badge"
                           style={{
-                            background: run.tag === 'Synthesis' ? '#eff6ff' : '#ecfdf5',
-                            color: run.tag === 'Synthesis' ? '#1d4ed8' : '#065f46',
-                            border: `1px solid ${run.tag === 'Synthesis' ? '#bfdbfe' : '#a7f3d0'}`,
+                            background:
+                              run.tag === 'Synthesis'
+                                ? '#eff6ff'
+                                : run.tag === 'Probability'
+                                ? '#fdf2f8'
+                                : run.tag === 'Projectile'
+                                ? '#f5f3ff'
+                                : '#ecfdf5',
+                            color:
+                              run.tag === 'Synthesis'
+                                ? '#1d4ed8'
+                                : run.tag === 'Probability'
+                                ? '#9d174d'
+                                : run.tag === 'Projectile'
+                                ? '#6d28d9'
+                                : '#065f46',
+                            border: `1px solid ${
+                              run.tag === 'Synthesis'
+                                ? '#bfdbfe'
+                                : run.tag === 'Probability'
+                                ? '#fbcfe8'
+                                : run.tag === 'Projectile'
+                                ? '#ddd6fe'
+                                : '#a7f3d0'
+                            }`,
                           }}
                         >
                           {run.tag}
@@ -205,6 +221,32 @@ export const App: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Tab 6: Independent Probability Simulations */}
+        {activeTab === 'probability' && (
+          <ProbabilityView
+            onSaveExperiment={(exp) => {
+              handleSaveRun(
+                exp.title,
+                `${exp.description || 'Probability test'} • Trials: ${exp.parameters.trials.toLocaleString()} • Seed: ${exp.parameters.seed}`,
+                'Probability'
+              );
+            }}
+          />
+        )}
+
+        {/* Tab 7: Independent Projectile Kinematics */}
+        {activeTab === 'projectile' && (
+          <ProjectileView
+            onSaveExperiment={(exp) => {
+              handleSaveRun(
+                exp.title,
+                `Launch: ${exp.parameters.initialSpeed} m/s @ ${exp.parameters.angleDeg}° • g = ${exp.parameters.gravity} m/s² • Range: ${exp.results.range.toFixed(1)}m`,
+                'Projectile'
+              );
+            }}
+          />
         )}
       </main>
     </div>

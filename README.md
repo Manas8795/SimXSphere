@@ -1,171 +1,137 @@
-# SimXSphere — Dual-Mode Interactive Cloud Simulation Platform
+# SimXSphere — Interactive Educational Simulation Platform
 
-> **Academic Cloud Computing Project**  
-> Dual-Mode Architecture (100% Offline Local Mode vs. Serverless AWS Cloud Mode)  
-> Zero-Cost Guarantee ($0.00 Free-Tier Gated) | Verifiable SimXPack (.zip) Bundling | 10-Step Security Hardening
+> **Academic Learning Environment**  
+> **Primary Module:** Interactive Virtual Chemistry Simulation Lab  
+> **Secondary Modules:** Probability & Distribution Experiments | Idealized Projectile Kinematics  
+> **Architecture:** 100% Local-First Offline Web Application (React 19 + TypeScript + Vite) | Cloud Services Deferred
 
 ---
 
 ## 🌟 Overview
 
-**SimXSphere** is a browser-first, dual-mode simulation and experimentation platform. It enables students and researchers to perform deterministic mathematical and physical simulations, analyze live empirical distributions, save runs locally, and package experiment suites into cryptographically verifiable, portable **SimXPacks** (`.simxpack.zip`).
+**SimXSphere** is a browser-based, local-first interactive simulation platform designed for academic science and mathematics education. It provides students and educators with bounded, testable, and transparent virtual laboratory environments.
 
-### Key Principles
-1. **Local-First Architecture:** Complete functionality runs in the browser using `localStorage`. Cloud deployment is strictly an opt-in enhancement.
-2. **Deterministic Reproducibility:** Pure computational simulation engines with seeded PRNG (`mulberry32`) and analytical trajectory solvers.
-3. **Cryptographic Integrity:** Canonical JSON serialization (lexicographically sorted keys, no whitespace) and SHA-256 digests.
-4. **Defense-in-Depth:** 10-step security pipeline guarding against Zip-Slip, decompression bombs, and script injection.
-5. **Strict AWS Free-Tier Adherence:** Serverless architecture (Cognito, HTTP API, 128 MB Lambda, DynamoDB On-Demand, S3 Presigned URLs) strictly designed to incur **$0.00**.
+The platform is structured into **three distinct, modular simulation areas**:
+
+1. **Chemistry Simulation Lab (Primary Focus):**  
+   An empirical chemistry workspace featuring:
+   - **Interactive 3D Workplane:** Blank canvas to drag, drop, and combine elements and compounds into beakers, with animated reaction triggers and molecular representations.
+   - **Interactive Periodic Table:** Complete 118-element reference displaying atomic masses, valence configurations, electronegativities, and reaction compatibility indicators.
+   - **Synthesis Reactor & Compound Builder:** Controlled combination of chemical elements into reviewed binary and polyatomic substances.
+   - **Aqueous Reactions & Titration:** Acid-base neutralization and precipitation reactions with calculated pH and temperature indicators.
+   - **Stoichiometry & Equation Validator:** Conservation-of-mass calculator for limiting reagents, theoretical yields, and atom-balance checks.
+   - **Chemistry Notebook:** Local session logging for reviewed reaction runs.
+
+2. **Probability & Statistical Experiments (Independent Module):**  
+   Deterministic, seedable Bernoulli and discrete uniform trial simulators (coin flips and multi-sided dice) with real-time empirical frequency histograms, theoretical expectation comparisons, and PRNG reproducibility.
+
+3. **Projectile Motion Simulation (Independent Module):**  
+   Classical idealized 2D kinematics trajectory solver with customizable launch angles, velocities, and gravitational fields (Earth, Moon, Mars, and custom values) with SVG flight paths.
+
+---
+
+## 🧭 Product Principles & Scientific Boundaries
+
+- **Local-First & Offline:** SimXSphere runs entirely in your browser using standard Web APIs and `localStorage`. No cloud accounts, API keys, or external network connectivity are required for full functionality.
+- **Transparent Academic Models:** Simplified educational models are clearly distinguished from professional laboratory or quantum predictions. Assumptions (e.g., zero air resistance in projectile kinematics, or reviewed reaction catalogues in chemistry) are explicitly stated in the UI.
+- **Bounded Chemistry:** The chemistry engine operates on a verified, curated catalogue of supported compounds and reactions. Unknown or unsupported combinations are reported as unsupported rather than generating fabricated chemistry or unverified thermodynamics.
+- **Independent Domain Architectures:** Chemistry, probability, and projectile motion are kept strictly separate in their domain data models, calculation engines, and persistence layers.
+- **Zero-Cloud Local MVP:** AWS integration, authentication, and cloud storage features are strictly deferred to future phases. Local operation does not create or provision cloud resources.
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ or 20+
-- npm 9+
+- **Node.js:** 18.x or 20.x+
+- **npm:** 9.x+
 
-### Installation & Execution
+### Setup & Local Development
 ```bash
+# Clone the repository
+git clone https://github.com/Manas8795/SimXSphere.git
+cd SimXSphere
+
 # Install dependencies
 npm install
 
-# Run the test suite (all 39 unit, security, and cloud mock tests)
-npm test
-
-# Build for production
-npm run build
-
-# Start local interactive development server
+# Start local development server (Vite)
 npm run dev
 ```
 
-Open **`http://localhost:5173/`** in your browser.
+Open `http://localhost:5173/` in your browser.
+
+### Quality & Verification Commands
+```bash
+# Run unit, domain, and simulation tests (Vitest)
+npm test
+
+# Build production bundle (TypeScript compiler + Vite)
+npm run build
+
+# Run code linter (Oxlint)
+npm run lint
+```
 
 ---
 
-## 🔬 Simulation Engines
+## 🔬 Simulation Modules
 
-Both simulation engines reside in `src/core/simulations/` with **zero UI or DOM dependencies**:
+### 1. Chemistry Simulation Lab (`src/chemistry-engine/` & `src/components/`)
+- **Workplane:** Drag-and-drop workspace supporting multi-component combinations with interactive 3D ball-and-stick molecular models and atomic orbital visualizations.
+- **Periodic Table:** All 118 elements categorized by group (alkali, halogens, noble gases, transition metals) with electron configurations and atomic properties.
+- **Stoichiometry & Balance Engine:** Evaluates chemical formulas, verifies mass conservation, computes limiting reagents, and parses reactants and products.
+- **Safety & Educational Scope:** Bounded to verified educational examples; does not provide hazardous mixing instructions.
 
-### 1. Probability Simulation (`probability.ts`)
-- **Engine:** `mulberry32` PRNG (deterministic 32-bit pseudo-random number generator).
-- **Parameters:**
-  - Kind: Coin Toss (2 sides) or Dice Roll (4 to 20 sides)
-  - Trials ($N$): 1 to 1,000,000
-  - Seed: 32-bit unsigned integer ($0$ to $4,294,967,295$)
-- **Visualization:** Pure SVG interactive histogram with empirical counts, percentage labels, and theoretical expectation baseline ($1/\text{sides}$).
+### 2. Probability Simulation (`src/core/simulations/probability.ts` & `src/ui/views/ProbabilityView.tsx`)
+- **Engine:** Deterministic 32-bit `mulberry32` pseudo-random number generator.
+- **Experiments:** Coin toss ($2$ outcomes) and dice rolls ($4$ to $20$ sides) over $1$ to $1,000,000$ trials.
+- **Outputs:** Empirical outcome tallies, relative frequencies, and SVG distribution histograms compared against theoretical probability $P(X) = 1/k$.
 
-### 2. Projectile Motion (`projectile.ts`)
-- **Model:** Idealized mechanics with constant gravity, flat ground, zero air resistance, and zero wind.
-- **Equations:**
+### 3. Projectile Motion (`src/core/simulations/projectile.ts` & `src/ui/views/ProjectileView.tsx`)
+- **Model:** Idealized 2D parabolic flight under uniform gravity with no aerodynamic drag:
   - Range: $R = \frac{v_0^2 \sin(2\theta)}{g}$
   - Flight Time: $T = \frac{2 v_0 \sin\theta}{g}$
   - Peak Height: $H = \frac{(v_0 \sin\theta)^2}{2g}$
-- **Trajectory:** Exactly 101 discrete coordinates $(x, y)$ plotted on a responsive SVG canvas with launch, apex, landing markers, and an interactive coordinate scrubber.
-- **Presets:** Earth ($9.81\text{ m/s}^2$), Moon ($1.62\text{ m/s}^2$), Mars ($3.71\text{ m/s}^2$), or custom gravity ($0.1$ to $30\text{ m/s}^2$).
-
----
-
-## 📦 SimXPack Specification (`.simxpack.zip`)
-
-SimXPacks bundle 2 to 4 experiments into a single verifiable ZIP archive:
-```
-week3-lab.simxpack.zip
-├── manifest.json              # Version 1 manifest with SHA-256 digests
-├── experiments/
-│   ├── exp-1-fair-die.json    # Canonical JSON experiment file
-│   └── exp-2-45-degree.json
-├── csv/                       # Optional tabular outcome data
-│   ├── exp-1-fair-die.csv
-│   └── exp-2-45-degree.csv
-└── README.txt                 # Human-readable package description
-```
-
-### 10-Step Security Pipeline (`src/core/simxpack/import.ts`)
-1. **Size check:** File $\le 5\text{ MiB}$ before parsing.
-2. **ZIP integrity:** Valid central directory.
-3. **Entry limit:** Max 20 entries; no case-insensitive duplicate paths.
-4. **Path allowlist (Zip-Slip defense):** Rejects `..`, leading `/`, backslashes `\`, `C:\`, and null bytes.
-5. **Entry bounds:** Declared uncompressed size $\le 2\text{ MiB}$ per entry, total $\le 5\text{ MiB}$.
-6. **Decompression bomb defense:** Running byte counter aborts on excess memory expansion.
-7. **Manifest validation:** Valid JSON, `format === "simxpack"`, `formatVersion === 1`.
-8. **Cryptographic verification:** Every file in the archive matches its declared size and SHA-256 hash.
-9. **Experiment validation:** Schema version 1, bounds validation, 2 to 4 experiments.
-10. **Conflict resolution:** Choice of `Overwrite`, `Skip`, or `Import as Copy`.
-
----
-
-## ☁️ AWS Cloud Architecture & Free-Tier Strictness
-
-```
-[Browser / Client]
-   │
-   ├─ 1. Auth: AWS Cognito User Pool (JWT issuance, 50,000 MAUs free)
-   │
-   ├─ 2. Metadata API: API Gateway HTTP API (1,000,000 calls free)
-   │     │ (Validates JWT)
-   │     ▼
-   │   AWS Lambda (128 MB RAM, 10s timeout, 1M invocations free)
-   │     │
-   │     ▼
-   │   Amazon DynamoDB (PAY_PER_REQUEST on-demand billing, 25 GB free)
-   │
-   └─ 3. Payloads (SimXPack ZIPs):
-         Direct Browser ───[Presigned S3 PUT / GET]───► Amazon S3 Private Bucket
-         (No ZIP bytes ever traverse Lambda or API Gateway)
-```
-
-### Prohibited Services (Cost Safeguards)
-The following services are intentionally omitted from our infrastructure:
-- ❌ **No EC2 Instances** (No virtual machines)
-- ❌ **No RDS Databases** (No relational DB billing traps)
-- ❌ **No NAT Gateways** (Heavy hourly charges avoided)
-- ❌ **No CloudFront / WAF / Route53** (No auxiliary network fees)
-
----
-
-## 🧪 Automated Test Suite
-
-Run all tests via Vitest:
-```bash
-npm test
-```
-
-### Test Coverage (39 tests across 6 test suites)
-- `tests/unit/canonical-json.test.ts`: Lexicographical sorting, finite number validation, SHA-256 test vectors.
-- `tests/unit/probability.test.ts`: Tests `P1` through `P7` (mulberry32 reproducibility, 4-sigma bounds, edge cases).
-- `tests/unit/projectile.test.ts`: Tests `J1` through `J9` (analytical formulas, 101 points, symmetry, celestial presets).
-- `tests/unit/local-storage.test.ts`: Tests `U-S1` through `U-S4`, `U-L1` (CRUD, schema validation, date sorting).
-- `tests/security/simxpack-security.test.ts`: Tests `S1` through `S9` (Zip-Slip, bombs, hash tampering, XSS).
-- `tests/cloud/aws-adapter-mock.test.ts`: Tests `C1` through `C3` (presigned URL flow, JWT authorization).
+- **Outputs:** Responsive SVG trajectory plot with discrete coordinates, launch/apex/impact markers, and planetary gravity presets (Earth $9.81\text{ m/s}^2$, Moon $1.62\text{ m/s}^2$, Mars $3.71\text{ m/s}^2$).
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-simxsphere/
-├── core/                         # Pure TypeScript. Zero React, zero DOM.
-│   ├── experiment/               # Types, schema validator, canonical JSON
-│   ├── simulations/              # mulberry32 PRNG, probability, projectile
-│   ├── simxpack/                 # ZIP wrapper (fflate), export, secure import, CSV
-│   └── crypto/                   # SHA-256 Web Crypto utility
-├── storage/                      # Storage abstraction layer
-│   ├── StorageAdapter.ts         # Unified interface
-│   ├── localAdapter.ts           # Browser localStorage adapter
-│   └── awsAdapter.ts             # AWS Cloud adapter (presigned S3 flows)
-├── ui/                           # React UI components & views
-│   ├── components/               # Navbar, Histogram (SVG), TrajectoryChart (SVG)
-│   ├── views/                    # ProbabilityView, ProjectileView, ExperimentsView, PacksView, CostStatusView
-│   └── styles/                   # index.css (Dark glassmorphism design system)
-├── infra/                        # Serverless Infrastructure as Code
-│   ├── template.yaml             # AWS SAM template (Cognito, HTTP API, Lambda, DynamoDB, S3)
-│   └── lambda/api.ts             # User-isolated serverless backend handler
-└── tests/                        # 39 automated Vitest test cases
+├── src/
+│   ├── chemistry-data/       # Elements (118) and reagent databases
+│   ├── chemistry-engine/     # Atom counter, compound builder, stoichiometry solver
+│   ├── components/           # Chemistry UI: Workplane, Periodic Table, 3D Molecule, Reactor
+│   ├── core/
+│   │   ├── crypto/           # Canonical JSON hashing (SHA-256)
+│   │   ├── experiment/       # Core experiment schemas and serialization
+│   │   ├── simulations/      # Pure simulation engines (probability, projectile, chemistry)
+│   │   └── simxpack/         # Pack compression & validation (historical/deferred module)
+│   ├── storage/              # Storage adapter (local localStorage vs deferred AWS)
+│   ├── ui/
+│   │   ├── components/       # Shared UI primitives: Navbar, Histogram, TrajectoryChart
+│   │   └── views/            # Module views: Chemistry, Probability, Projectile, Lab Notebook
+│   ├── App.tsx               # Main application shell and tab router
+│   └── main.tsx              # React DOM root
+├── tests/
+│   ├── unit/                 # Unit tests for chemistry, probability, projectile, stoichiometry
+│   ├── security/             # Archive unpacking security & validation checks
+│   └── cloud/                # Mock tests for storage adapters
+├── files/                    # Historical design specs & documentation (Legacy archive)
+├── package.json              # Project dependencies and npm scripts
+└── vite.config.ts            # Vite build configuration
 ```
 
 ---
 
-## 📜 Academic Integrity & License
-This project was developed for an academic cloud computing curriculum. MIT License.
+## ☁️ Cloud & AWS Status (Deferred)
+
+Cloud deployment, AWS Cognito authentication, S3 package synchronization, and DynamoDB cloud persistence are **strictly deferred**. All current features run locally and offline in the browser. Zero cloud resources are provisioned during local development.
+
+---
+
+## 📄 License & Academic Attribution
+
+Developed for educational simulation and scientific experimentation. Bounded educational models — not intended as professional laboratory or safety software.

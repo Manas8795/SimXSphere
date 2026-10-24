@@ -1,6 +1,12 @@
-﻿# SimXSphere - Master Build and Deployment Plan
+# SimXSphere - Master Build and Deployment Plan
 
-> REFERENCE DOCUMENT. Read this before every work session. Last Updated: 2026-10-19
+> [!CAUTION]
+> **HISTORICAL REFERENCE / NOT CURRENT IMPLEMENTATION INSTRUCTIONS**  
+> This master plan documents the initial October 2026 build phase focused on probability/projectile simulations, SimXPack bundling, and AWS cloud deployment.  
+> The active product direction prioritizes the **Chemistry Simulation Lab** as the primary local-first educational experience, alongside separate Probability and Projectile modules. AWS provisioning is strictly deferred.  
+> Consult [SimXSphere_Antigravity_Project_Brief.md](SimXSphere_Antigravity_Project_Brief.md) and the root [README.md](README.md) for active engineering instructions.
+
+> REFERENCE DOCUMENT. Historical archive. Last Updated: 2026-10-19
 
 ---
 

@@ -23,11 +23,13 @@ export interface SynthesizedCompound {
   appearanceColor: string;       // Color hex for visualization
   molarMass: number;             // g/mol
   synthesisEquation: string;     // e.g. "2H₂ + O₂ → 2H₂O"
-  isExothermic: boolean;
-  energyChangeKj: number;        // Enthalpy of formation ΔHf° (kJ/mol)
+  isExothermic: boolean | null;  // null if unverified candidate exercise
+  energyChangeKj: number | null; // Enthalpy of formation ΔHf° (kJ/mol), null if unverified
   description: string;
   molecularGeometry?: string;    // e.g. "Bent (104.5°)", "Linear (180°)", "Face-centered cubic"
   constituentAtoms: { symbol: string; count: number; color: string }[];
+  isCurated: boolean;            // true if verified against academic reference database
+  provenance?: string;           // Academic source or theoretical model attribution
 }
 
 export interface SynthesisResult {
@@ -44,7 +46,7 @@ export interface SynthesisResult {
 interface CuratedCompoundDefinition {
   elements: string[]; // Sorted symbols, e.g. ['H', 'O']
   ratios: number[];   // Matching ratios, e.g. [2, 1]
-  compound: Omit<SynthesizedCompound, 'constituentAtoms'>;
+  compound: Omit<SynthesizedCompound, 'constituentAtoms' | 'isCurated'> & { isCurated?: boolean };
 }
 
 const CURATED_SYNTHESIS_DATABASE: CuratedCompoundDefinition[] = [
@@ -245,7 +247,31 @@ const CURATED_SYNTHESIS_DATABASE: CuratedCompoundDefinition[] = [
       isExothermic: true,
       energyChangeKj: -100.0,
       description: 'Black mineral formed by direct heating of iron filings and sulfur powder.',
-      molecularGeometry: 'Hexagonal NiAs-type'
+      molecularGeometry: 'Hexagonal NiAs-type',
+      isCurated: true,
+      provenance: 'NIST Chemistry WebBook (SRD 69)'
+    }
+  },
+  // Fe + O -> Fe2O3 (Iron(III) Oxide / Rust / Hematite)
+  {
+    elements: ['Fe', 'O'],
+    ratios: [2, 3],
+    compound: {
+      formula: 'Fe2O3',
+      formulaHtml: 'Fe<sub>2</sub>O<sub>3</sub>',
+      commonName: 'Rust / Iron(III) Oxide',
+      iupacName: 'Iron(III) oxide',
+      bondType: 'Ionic',
+      physicalState: 'solid',
+      appearanceColor: '#7c2d12', // Reddish brown
+      molarMass: 159.687,
+      synthesisEquation: '4Fe(s) + 3O₂(g) → 2Fe₂O₃(s)',
+      isExothermic: true,
+      energyChangeKj: -824.2,
+      description: 'Reddish-brown mineral (hematite) and chief constituent of rust, formed by standard oxidation of iron.',
+      molecularGeometry: 'Corundum-type Rhombohedral Lattice',
+      isCurated: true,
+      provenance: 'NIST Chemistry WebBook (SRD 69)'
     }
   },
   // Cu + O -> CuO (Copper(II) Oxide)
@@ -388,6 +414,8 @@ function resolveAlgorithmicBinarySynthesis(
               { symbol: 'Xe', count: xeRatio, color: '#a855f7' },
               { symbol: 'F', count: fRatio, color: '#fed7aa' },
             ],
+            isCurated: true,
+            provenance: 'NIST Chemistry WebBook',
           },
           matchedRule: `Hypervalent noble gas synthesis for ${formula}`,
         };
@@ -497,7 +525,6 @@ function resolveAlgorithmicBinarySynthesis(
 
     const molarMass = Number((rc * cation.atomicMass + ra * anion.atomicMass).toFixed(3));
     const physicalState: 'gas' | 'liquid' | 'solid' | 'aqueous' = bondType === 'Ionic' ? 'solid' : (molarMass < 50 ? 'gas' : 'solid');
-    const energyChangeKj = Number((-110 * Math.max(0.5, deltaEn) * (rc + ra)).toFixed(1));
 
     const stateSymbol = (sym: string, st: string) => st === 'gas' ? `${sym}₂(g)` : (st === 'liquid' && sym === 'Br' ? 'Br₂(l)' : `${sym}(s)`);
     const eqLeft = `${rc > 1 ? rc : ''}${stateSymbol(cation.symbol, cation.standardState)} + ${ra > 1 ? ra : ''}${stateSymbol(anion.symbol, anion.standardState)}`;
@@ -516,16 +543,18 @@ function resolveAlgorithmicBinarySynthesis(
         appearanceColor: cation.color || '#e2e8f0',
         molarMass,
         synthesisEquation,
-        isExothermic: true,
-        energyChangeKj,
-        description: `${iupacName} is formed by stoichiometric combination of ${cation.name} and ${anion.name}. Oxidation states: ${cation.symbol}(+${matchedPair.cationValence}), ${anion.symbol}(-${matchedPair.anionValence}). Electronegativity difference Δχ = ${deltaEn.toFixed(2)}.`,
+        isExothermic: null,
+        energyChangeKj: null,
+        description: `Candidate-formula valence exercise: ${iupacName} is generated from balanced oxidation states ${cation.symbol}(+${matchedPair.cationValence}) and ${anion.symbol}(-${matchedPair.anionValence}) (Δχ = ${deltaEn.toFixed(2)}). This stoichiometric valence model predicts chemical composition; thermodynamic values (ΔH) and phase stability require empirical laboratory verification.`,
         molecularGeometry: bondType === 'Ionic' ? 'Ionic Crystal Lattice' : (rc === 1 && ra === 1 ? 'Linear' : rc === 1 && ra === 2 ? 'Bent' : 'Molecular polyhedral'),
         constituentAtoms: [
           { symbol: cation.symbol, count: rc, color: cation.color },
           { symbol: anion.symbol, count: ra, color: anion.color },
         ],
+        isCurated: false,
+        provenance: 'Valence-model candidate exercise (unverified thermodynamics)',
       },
-      matchedRule: `Algorithmic stoichiometric valence balance for ${formula}`,
+      matchedRule: `Candidate-formula valence exercise for ${formula}`,
     };
   }
 
@@ -592,6 +621,8 @@ export function synthesizeCompoundFromElements(
       success: true,
       compound: {
         ...match.compound,
+        isCurated: true,
+        provenance: match.compound.provenance || 'NIST Chemistry WebBook (SRD 69)',
         constituentAtoms
       },
       matchedRule: `Curated stoichiometric synthesis for ${match.compound.formula}`

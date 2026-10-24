@@ -4,10 +4,10 @@ import {
   simulateChemicalMixing,
   type ReactionOutput,
 } from '../../core/simulations/chemistry';
-import type { ExperimentRun } from '../../core/experiment/types';
+import type { ChemistryExperiment } from '../../core/experiment/types';
 
 interface ChemistryViewProps {
-  onSaveExperiment: (exp: ExperimentRun) => void;
+  onSaveExperiment: (exp: ChemistryExperiment) => void;
 }
 
 export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }) => {
@@ -46,24 +46,39 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
   };
 
   const handleSave = () => {
-    // Generate valid experiment record compatible with our local storage & SimXPack system
-    const expRecord: ExperimentRun = {
+    // Generate valid ChemistryExperiment record with authentic domain schema
+    const expRecord: ChemistryExperiment = {
       schemaVersion: 1,
       id: crypto.randomUUID(),
-      type: 'probability', // Using schema v1 envelope
-      title: `Reaction: ${reagentA.formula} + ${reagentB.formula}`,
-      description: `${reactionResult.reactionType}: ${reactionResult.balancedEquation}. Final pH: ${reactionResult.finalPh}`,
+      type: 'chemistry',
+      title: `Aqueous: ${reagentA.name} + ${reagentB.name}`,
+      description: `${reactionResult.reactionType}: ${reactionResult.balancedEquation}. Final pH: ${reactionResult.finalPh.toFixed(2)}`,
       createdAt: new Date().toISOString(),
       appVersion: '1.0.0',
       parameters: {
-        kind: 'coin', // Compatible with envelope
-        sides: 2,
-        trials: Math.round(volumeAMl + volumeBMl),
-        seed: Math.round(reactionResult.finalPh * 100),
+        mode: 'aqueous',
+        reactants: [
+          { formula: reagentA.formula, name: reagentA.name, volumeMl: volumeAMl, concentrationM: concAM },
+          { formula: reagentB.formula, name: reagentB.name, volumeMl: volumeBMl, concentrationM: concBM },
+        ],
+        conditions: {
+          temperatureC: 25,
+          solvent: 'Water (aqueous)',
+        },
       },
       results: {
-        counts: [Math.round(volumeAMl), Math.round(volumeBMl)],
-        total: Math.round(volumeAMl + volumeBMl),
+        reactionType: reactionResult.reactionType,
+        balancedEquation: reactionResult.balancedEquation,
+        products: [reactionResult.precipitateFormed || '', reactionResult.gasEvolved || ''].filter(Boolean),
+        isConserved: true,
+        finalPh: reactionResult.finalPh,
+        temperatureChangeC: reactionResult.temperatureChangeC,
+        precipitate: reactionResult.precipitateFormed,
+        gasEvolved: reactionResult.gasEvolved,
+        enthalpyKj: null,
+        isCurated: true,
+        provenance: 'SimXSphere Curated Physical Chemistry Engine',
+        notes: reactionResult.description,
       },
     };
 

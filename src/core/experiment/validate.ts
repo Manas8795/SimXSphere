@@ -53,9 +53,9 @@ export function validateExperimentRun(data: unknown): ValidationResult {
     errors.push('id must be a non-empty UUID string');
   }
 
-  // type must be probability or projectile
-  if (exp.type !== 'probability' && exp.type !== 'projectile') {
-    errors.push('type must be either "probability" or "projectile"');
+  // type must be chemistry, probability, or projectile
+  if (exp.type !== 'probability' && exp.type !== 'projectile' && exp.type !== 'chemistry') {
+    errors.push('type must be "chemistry", "probability", or "projectile"');
   }
 
   // title: 1-80 chars
@@ -94,7 +94,35 @@ export function validateExperimentRun(data: unknown): ValidationResult {
   }
 
   // Specific validation per type
-  if (exp.type === 'probability') {
+  if (exp.type === 'chemistry') {
+    if (!exp.parameters || typeof exp.parameters !== 'object') {
+      errors.push('chemistry parameters must be an object');
+    } else {
+      const params = exp.parameters as Record<string, unknown>;
+      const validModes = ['synthesis', 'aqueous', 'stoichiometry', 'workplane'];
+      if (typeof params.mode !== 'string' || !validModes.includes(params.mode)) {
+        errors.push(`chemistry mode must be one of: ${validModes.join(', ')}`);
+      }
+      if (!Array.isArray(params.reactants) || params.reactants.length === 0) {
+        errors.push('chemistry reactants must be a non-empty array');
+      }
+    }
+
+    if (!exp.results || typeof exp.results !== 'object') {
+      errors.push('chemistry results must be an object');
+    } else {
+      const res = exp.results as Record<string, unknown>;
+      if (typeof res.reactionType !== 'string' || !res.reactionType) {
+        errors.push('chemistry results must specify a valid reactionType');
+      }
+      if (typeof res.balancedEquation !== 'string' || !res.balancedEquation) {
+        errors.push('chemistry results must specify a valid balancedEquation');
+      }
+      if (typeof res.isConserved !== 'boolean') {
+        errors.push('chemistry results must specify boolean isConserved');
+      }
+    }
+  } else if (exp.type === 'probability') {
     const pValidation = validateProbabilityParameters(exp.parameters);
     if (!pValidation.valid) {
       errors.push(...pValidation.errors);

@@ -1,6 +1,14 @@
 import React from 'react';
 
-export type ActiveTab = 'workplane' | 'table' | 'reactor' | 'aqueous' | 'validator' | 'runs';
+export type ActiveTab =
+  | 'workplane'
+  | 'table'
+  | 'reactor'
+  | 'aqueous'
+  | 'validator'
+  | 'runs'
+  | 'probability'
+  | 'projectile';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -26,16 +34,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div>
           <span className="lab-brand-title">SimXSphere</span>
           <span className="lab-badge" style={{ background: '#f1f5f9', color: '#1e3a8a', border: '1px solid #cbd5e1', marginLeft: 8, fontSize: '11px', fontWeight: 600 }}>
-            Empirical Chemistry Workstation
+            Academic Simulation Suite
           </span>
         </div>
       </div>
 
-      <nav className="lab-nav-tabs" aria-label="Main Navigation">
+      <nav className="lab-nav-tabs" aria-label="Main Navigation" style={{ flexWrap: 'wrap' }}>
         <button
           id="nav-tab-workplane"
           className={`lab-nav-tab ${activeTab === 'workplane' ? 'active' : ''}`}
           onClick={() => onSelectTab('workplane')}
+          title="Interactive Chemistry Workplane"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
@@ -49,6 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="nav-tab-table"
           className={`lab-nav-tab ${activeTab === 'table' ? 'active' : ''}`}
           onClick={() => onSelectTab('table')}
+          title="118-Element Periodic Table"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect width="18" height="18" x="3" y="3" rx="2" />
@@ -64,6 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="nav-tab-reactor"
           className={`lab-nav-tab ${activeTab === 'reactor' ? 'active' : ''}`}
           onClick={() => onSelectTab('reactor')}
+          title="Compound Synthesis Reactor"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
@@ -76,6 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="nav-tab-aqueous"
           className={`lab-nav-tab ${activeTab === 'aqueous' ? 'active' : ''}`}
           onClick={() => onSelectTab('aqueous')}
+          title="Aqueous Solutions and Titration"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
@@ -87,18 +99,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="nav-tab-validator"
           className={`lab-nav-tab ${activeTab === 'validator' ? 'active' : ''}`}
           onClick={() => onSelectTab('validator')}
+          title="Stoichiometry & Equation Balance"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m9 12 2 2 4-4" />
             <circle cx="12" cy="12" r="10" />
           </svg>
-          Stoichiometry Check
+          Stoichiometry
         </button>
 
         <button
           id="nav-tab-runs"
           className={`lab-nav-tab ${activeTab === 'runs' ? 'active' : ''}`}
           onClick={() => onSelectTab('runs')}
+          title="Chemistry Laboratory Notebook"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -112,6 +126,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               {runCount}
             </span>
           )}
+        </button>
+
+        <div style={{ width: 1, background: 'var(--border-light)', margin: '4px 6px' }} aria-hidden="true" />
+
+        {/* Secondary Independent Modules */}
+        <button
+          id="nav-tab-probability"
+          className={`lab-nav-tab ${activeTab === 'probability' ? 'active' : ''}`}
+          onClick={() => onSelectTab('probability')}
+          title="Independent Probability Experiments"
+          style={{ color: activeTab === 'probability' ? 'var(--primary)' : 'var(--text-secondary)' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+            <path d="M16 8h.01" />
+            <path d="M8 8h.01" />
+            <path d="M8 16h.01" />
+            <path d="M16 16h.01" />
+            <path d="M12 12h.01" />
+          </svg>
+          Probability Lab
+        </button>
+
+        <button
+          id="nav-tab-projectile"
+          className={`lab-nav-tab ${activeTab === 'projectile' ? 'active' : ''}`}
+          onClick={() => onSelectTab('projectile')}
+          title="Independent Projectile Kinematics"
+          style={{ color: activeTab === 'projectile' ? 'var(--primary)' : 'var(--text-secondary)' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+          </svg>
+          Projectile Motion
         </button>
       </nav>
 

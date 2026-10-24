@@ -1,5 +1,11 @@
 # SimXSphere
 
+> [!CAUTION]
+> **LEGACY SPECIFICATION / HISTORICAL REFERENCE ONLY**  
+> This document describes the earlier probability/projectile and AWS cloud-first platform design.  
+> The current product direction focuses primarily on the **Chemistry Simulation Lab** as a local-first platform, with Probability and Projectile simulations maintained as independent modules. AWS cloud features are deferred.  
+> See the root [README.md](../README.md) and [SimXSphere_Antigravity_Project_Brief.md](../SimXSphere_Antigravity_Project_Brief.md) for the active product specification.
+
 **An Interactive Simulation Platform with Experiment Packaging, Compression, Export, and Sharing**
 
 > Sim = Simulation · X = eXport/Transfer · Sphere = one platform for experiments and their results

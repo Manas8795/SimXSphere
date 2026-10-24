@@ -217,7 +217,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
         if (onSaveRun) {
           onSaveRun(
             `Synthesis: ${res.compound.formula} (${res.compound.commonName})`,
-            `${res.compound.synthesisEquation} • ${res.compound.bondType} Bond • ΔH = ${res.compound.energyChangeKj} kJ/mol`,
+            `${res.compound.synthesisEquation} • ${res.compound.bondType} Bond • ${res.compound.energyChangeKj !== null ? `ΔH = ${res.compound.energyChangeKj} kJ/mol` : 'ΔH = Unmeasured (Candidate model)'}`,
             'Synthesis'
           );
         }
@@ -1029,7 +1029,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                         {synthesisResult.compound.synthesisEquation}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#166534' }}>
-                        ΔH: {synthesisResult.compound.energyChangeKj} kJ/mol • {synthesisResult.compound.molarMass} g/mol
+                        ΔH: {synthesisResult.compound.energyChangeKj !== null ? `${synthesisResult.compound.energyChangeKj} kJ/mol` : 'Unmeasured (Candidate model)'} • {synthesisResult.compound.molarMass} g/mol
                       </div>
 
                       <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid #bbf7d0' }}>
