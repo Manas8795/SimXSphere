@@ -222,7 +222,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
           );
         }
       }
-    }, 600);
+    }, 1350);
   };
 
   const getStoichiometryResult = (): StoichiometryResult | null => {
@@ -748,13 +748,24 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
 
               {/* BEAKER GRAPHIC VESSEL */}
               <div
+                className={isSimulating ? 'beaker-mixing-rumble' : ''}
                 style={{
                   position: 'relative',
                   width: '230px',
                   height: '270px',
                   margin: '0 auto 1rem',
+                  transition: 'transform 0.15s ease',
                 }}
               >
+                {/* Steam / Vapor Wisps when mixing */}
+                {isSimulating && (
+                  <>
+                    <div className="steam-wisp" style={{ left: '46px', animationDelay: '0s' }} />
+                    <div className="steam-wisp" style={{ left: '106px', animationDelay: '0.4s' }} />
+                    <div className="steam-wisp" style={{ left: '166px', animationDelay: '0.8s' }} />
+                  </>
+                )}
+
                 {/* Pyrex Beaker Glass Outline */}
                 <svg
                   width="230"
@@ -792,8 +803,39 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   ))}
                 </svg>
 
+                {/* ACTIVE MIXING LIQUID VORTEX & STIR BAR */}
+                {isSimulating && (
+                  <>
+                    <div className="liquid-vortex-active">
+                      <div className="vortex-meniscus" />
+                    </div>
+                    <div className="magnetic-stir-bar" />
+                    {[
+                      { left: '26%', size: 7, delay: '0s' },
+                      { left: '44%', size: 10, delay: '0.2s' },
+                      { left: '62%', size: 6, delay: '0.45s' },
+                      { left: '34%', size: 8, delay: '0.15s' },
+                      { left: '72%', size: 5, delay: '0.35s' },
+                      { left: '52%', size: 9, delay: '0.55s' },
+                      { left: '28%', size: 6, delay: '0.7s' },
+                      { left: '66%', size: 8, delay: '0.8s' },
+                    ].map((b, i) => (
+                      <div
+                        key={i}
+                        className="fizzy-bubble"
+                        style={{
+                          left: b.left,
+                          width: b.size,
+                          height: b.size,
+                          animationDelay: b.delay,
+                        }}
+                      />
+                    ))}
+                  </>
+                )}
+
                 {/* LIQUID FILL (When reacted or hydrated) */}
-                {resultingCompoundSphere && (
+                {resultingCompoundSphere && !isSimulating && (
                   <div
                     style={{
                       position: 'absolute',
@@ -823,16 +865,121 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                     padding: '2rem 1.5rem',
                   }}
                 >
-                  {/* 1. If Reaction Succeeded: RENDER RESULTING COMPOUND SPHERE */}
-                  {resultingCompoundSphere ? (
+                  {/* 1. MIXING IN PROGRESS ANIMATION STATE */}
+                  {isSimulating ? (
                     <div
                       style={{
+                        position: 'relative',
+                        width: '100%',
+                        height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        animation: 'fadeInScale 0.5s ease',
+                        justifyContent: 'center',
                       }}
                     >
+                      {/* Central Reaction Energy Plasma Core */}
+                      <div className="reaction-energy-core" />
+
+                      {/* Energetic Sparks Flying */}
+                      {[
+                        { tx: '36px', ty: '-32px', icon: '✨', delay: '0s' },
+                        { tx: '-38px', ty: '-26px', icon: '⚡', delay: '0.12s' },
+                        { tx: '32px', ty: '30px', icon: '💥', delay: '0.25s' },
+                        { tx: '-32px', ty: '32px', icon: '✨', delay: '0.35s' },
+                        { tx: '0px', ty: '-42px', icon: '⚡', delay: '0.18s' },
+                      ].map((spark, i) => (
+                        <div
+                          key={i}
+                          className="reaction-spark"
+                          style={{
+                            ['--tx' as string]: spark.tx,
+                            ['--ty' as string]: spark.ty,
+                            animationDelay: spark.delay,
+                          }}
+                        >
+                          {spark.icon}
+                        </div>
+                      ))}
+
+                      {/* Swirling Element Spheres Orbiting Vortex */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: '130px',
+                          height: '130px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {beakerSpheres.map((sphere, idx) => (
+                          <div
+                            key={sphere.instanceId}
+                            className={idx % 2 === 0 ? 'mixing-sphere-orbit-cw' : 'mixing-sphere-orbit-ccw'}
+                            style={{
+                              position: 'absolute',
+                              animationDelay: `${idx * -0.22}s`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              filter: 'drop-shadow(0 0 8px rgba(254, 240, 138, 0.85))',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '50%',
+                                background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${sphere.element.color} 50%, #0f172a 100%)`,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#ffffff',
+                                fontWeight: 900,
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              {sphere.element.symbol}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Active Status Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: '6px',
+                          zIndex: 6,
+                          background: 'rgba(0,0,0,0.75)',
+                          color: '#fef08a',
+                          padding: '3px 12px',
+                          borderRadius: '12px',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          border: '1.5px solid var(--wood-frame)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                        }}
+                      >
+                        ⚗️ Atoms reacting...
+                      </div>
+                    </div>
+                  ) : resultingCompoundSphere ? (
+                    /* 2. REACTION COMPLETE: RENDER COMPOUND SPHERE WITH FUSION BLOOM */
+                    <div
+                      className="compound-fusion-pop"
+                      style={{
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                      }}
+                    >
+                      {/* Shockwave expanding ring */}
+                      <div className="fusion-shockwave-ring" />
+
                       <div
                         onClick={() => open3DViewerForCompound(resultingCompoundSphere)}
                         style={{
@@ -840,7 +987,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           height: '84px',
                           borderRadius: '50%',
                           background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${resultingCompoundSphere.appearanceColor} 50%, #0f172a 100%)`,
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.25), 0 0 15px rgba(56, 189, 248, 0.4)',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.35), 0 0 25px rgba(254, 240, 138, 0.7)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -850,6 +997,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           userSelect: 'none',
                           transform: 'scale(1.05)',
                           transition: 'transform 0.2s ease',
+                          zIndex: 5,
                         }}
                         title="Click to view 3D Molecular Model"
                       >
@@ -874,16 +1022,17 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                         </span>
                       </div>
 
-                      <span style={{ fontSize: '0.72rem', color: '#ffffff', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '10px', marginTop: 8 }}>
+                      <span style={{ fontSize: '0.72rem', color: '#ffffff', background: 'rgba(0,0,0,0.7)', padding: '2px 8px', borderRadius: '10px', marginTop: 8, border: '1px solid var(--wood-frame)', zIndex: 5 }}>
                         Click sphere for 3D
                       </span>
                     </div>
                   ) : beakerSpheres.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#15803d', fontSize: '0.84rem', fontWeight: 700, padding: '0 10px', fontFamily: 'var(--font-display)' }}>
+                    /* 3. EMPTY BEAKER STATE */
+                    <div style={{ textAlign: 'center', color: '#86efac', fontSize: '0.84rem', fontWeight: 700, padding: '0 10px', fontFamily: 'var(--font-display)' }}>
                       ✨ Drop colorful element spheres here to mix!
                     </div>
                   ) : (
-                    /* ELEMENT SPHERES INSIDE BEAKER */
+                    /* 4. UNREACTED ELEMENT SPHERES INSIDE BEAKER */
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, maxWidth: '170px' }}>
                       {beakerSpheres.map((sphere) => (
                         <div
@@ -905,13 +1054,14 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                               height: '42px',
                               borderRadius: '50%',
                               background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${sphere.element.color} 50%, #0f172a 100%)`,
-                              boxShadow: '0 4px 10px rgba(0,0,0,0.22)',
+                              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: '#ffffff',
                               userSelect: 'none',
+                              border: '1.5px solid rgba(255,255,255,0.4)',
                             }}
                           >
                             <span style={{ fontSize: '0.9rem', fontWeight: 900, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
@@ -922,7 +1072,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                             </span>
                           </div>
 
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--lab-text)', marginTop: 2 }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#ffffff', marginTop: 2 }}>
                             {sphere.element.name}
                           </span>
                         </div>

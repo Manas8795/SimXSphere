@@ -725,3 +725,323 @@ sup {
 .reaction-pulse {
   animation: reactionPulse 1.5s infinite;
 }
+
+/* ===================================================================
+   Beaker Reaction & Mixing Animations
+   =================================================================== */
+
+/* 1. Beaker Vessel Ultrasonic Rumble / Vibration */
+@keyframes beakerRumble {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-1.2px, 0.8px) rotate(-0.4deg); }
+  40% { transform: translate(1px, -0.8px) rotate(0.4deg); }
+  60% { transform: translate(-0.8px, -0.6px) rotate(-0.3deg); }
+  80% { transform: translate(1.2px, 0.6px) rotate(0.3deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.beaker-mixing-rumble {
+  animation: beakerRumble 0.14s infinite linear;
+}
+
+/* 2. Laboratory Magnetic Stir Bar */
+@keyframes stirBarSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.magnetic-stir-bar {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  width: 32px;
+  height: 9px;
+  margin-left: -16px;
+  background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  z-index: 5;
+  pointer-events: none;
+  animation: stirBarSpin 0.18s infinite linear;
+}
+
+/* 3. Liquid Whirlpool / Swirling Vortex */
+@keyframes vortexLiquidWave {
+  0% {
+    transform: rotate(0deg) scale(1);
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.04);
+    filter: hue-rotate(45deg);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    filter: hue-rotate(90deg);
+  }
+}
+
+.liquid-vortex-active {
+  position: absolute;
+  bottom: 16px;
+  left: 32px;
+  width: 166px;
+  height: 155px;
+  border-radius: 0 0 18px 18px;
+  background: radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.45), transparent 70%),
+              conic-gradient(from 0deg at 50% 50%, rgba(52, 211, 153, 0.65), rgba(59, 130, 246, 0.65), rgba(244, 63, 94, 0.6), rgba(250, 204, 21, 0.65), rgba(52, 211, 153, 0.65));
+  opacity: 0.82;
+  box-shadow: inset 0 -10px 25px rgba(0, 0, 0, 0.4), 0 0 25px rgba(52, 211, 153, 0.5);
+  animation: vortexLiquidWave 0.8s infinite linear;
+  overflow: hidden;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Vortex Meniscus Dip */
+.vortex-meniscus {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  width: 70%;
+  height: 22px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(15, 23, 42, 0.6) 0%, transparent 80%);
+  border-radius: 50%;
+  animation: vortexMeniscusPulse 0.4s infinite alternate ease-in-out;
+}
+
+@keyframes vortexMeniscusPulse {
+  0% { transform: scaleY(0.85); opacity: 0.7; }
+  100% { transform: scaleY(1.3); opacity: 0.95; }
+}
+
+/* 4. Element Spheres Orbital Vortex Swirl */
+@keyframes sphereOrbitCW {
+  0% {
+    transform: rotate(0deg) translateX(46px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) translateX(36px) rotate(-180deg) scale(0.88);
+  }
+  100% {
+    transform: rotate(360deg) translateX(46px) rotate(-360deg) scale(1);
+  }
+}
+
+@keyframes sphereOrbitCCW {
+  0% {
+    transform: rotate(360deg) translateX(42px) rotate(-360deg) scale(0.9);
+  }
+  50% {
+    transform: rotate(180deg) translateX(32px) rotate(-180deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(0deg) translateX(42px) rotate(0deg) scale(0.9);
+  }
+}
+
+.mixing-sphere-orbit-cw {
+  animation: sphereOrbitCW 0.75s infinite linear;
+}
+
+.mixing-sphere-orbit-ccw {
+  animation: sphereOrbitCCW 0.65s infinite linear;
+}
+
+/* 5. Fizzy Effervescence Bubbles */
+@keyframes fizzyBubbleRise {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(-6px, -70px) scale(1);
+    opacity: 0.9;
+  }
+  80% {
+    transform: translate(6px, -140px) scale(1.2);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate(-3px, -190px) scale(1.4);
+    opacity: 0;
+  }
+}
+
+.fizzy-bubble {
+  position: absolute;
+  bottom: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.95) 0%, rgba(254, 240, 138, 0.8) 50%, rgba(52, 211, 153, 0.6) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 6px rgba(254, 240, 138, 0.8);
+  pointer-events: none;
+  animation: fizzyBubbleRise 0.95s infinite ease-out;
+  z-index: 4;
+}
+
+/* 6. Central Reaction Energy Plasma Core & Sparks */
+@keyframes energyCorePulse {
+  0% {
+    transform: scale(0.7) rotate(0deg);
+    opacity: 0.6;
+    box-shadow: 0 0 15px #fde047, 0 0 30px #34d399;
+  }
+  50% {
+    transform: scale(1.3) rotate(180deg);
+    opacity: 1;
+    box-shadow: 0 0 28px #f43f5e, 0 0 50px #38bdf8;
+  }
+  100% {
+    transform: scale(0.7) rotate(360deg);
+    opacity: 0.6;
+    box-shadow: 0 0 15px #fde047, 0 0 30px #34d399;
+  }
+}
+
+.reaction-energy-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  margin-left: -22px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #fde047 35%, #34d399 70%, transparent 100%);
+  animation: energyCorePulse 0.5s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Sparks Bursting from Core */
+@keyframes sparkFlight {
+  0% {
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx, 25px), var(--ty, -30px)) scale(1.2) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.reaction-spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 14px;
+  line-height: 1;
+  pointer-events: none;
+  animation: sparkFlight 0.55s infinite ease-out;
+  z-index: 5;
+}
+
+/* 7. Steam / Vapor Wisps Rising from Spout */
+@keyframes steamWispRise {
+  0% {
+    transform: translateY(0) scaleX(0.7) scaleY(0.6);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  70% {
+    transform: translateY(-38px) scaleX(1.3) scaleY(1.1);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-65px) scaleX(1.8) scaleY(1.4);
+    opacity: 0;
+  }
+}
+
+.steam-wisp {
+  position: absolute;
+  top: 14px;
+  width: 14px;
+  height: 24px;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.75), transparent 75%);
+  border-radius: 50%;
+  filter: blur(3px);
+  pointer-events: none;
+  animation: steamWispRise 1.2s infinite ease-out;
+  z-index: 6;
+}
+
+/* 8. Synthesis Complete / Compound Fusion Bloom Pop */
+@keyframes compoundFusionBloom {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+    filter: brightness(2.5);
+  }
+  60% {
+    transform: scale(1.18) rotate(4deg);
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  80% {
+    transform: scale(0.96) rotate(-1deg);
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.compound-fusion-pop {
+  animation: compoundFusionBloom 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fusionShockwave {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.fusion-shockwave-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  margin-top: -40px;
+  margin-left: -40px;
+  border-radius: 50%;
+  border: 3px solid #fde047;
+  box-shadow: 0 0 20px #34d399, inset 0 0 15px #fde047;
+  pointer-events: none;
+  animation: fusionShockwave 0.8s ease-out forwards;
+  z-index: 3;
+}
+
+/* Reduced motion fallbacks */
+@media (prefers-reduced-motion: reduce) {
+  .beaker-mixing-rumble,
+  .magnetic-stir-bar,
+  .mixing-sphere-orbit-cw,
+  .mixing-sphere-orbit-ccw,
+  .reaction-energy-core,
+  .reaction-spark,
+  .steam-wisp,
+  .liquid-vortex-active,
+  .fizzy-bubble {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .compound-fusion-pop {
+    animation: fadeInScale 0.2s ease forwards !important;
+  }
+}
+
