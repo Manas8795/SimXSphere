@@ -1,0 +1,211 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SimXSphere Serverless Cloud Architecture (Free-Tier Strict)
+  Services: Cognito, HTTP API, Lambda (128MB), DynamoDB (On-Demand), S3 (Private, Presigned URLs)
+  Prohibited: EC2, RDS, NAT Gateway, CloudFront, Route53, WAF.
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    LoggingConfig:
+      LogFormat: JSON
+
+Parameters:
+  AppClientOrigin:
+    Type: String
+    Default: 'http://localhost:5173'
+    Description: Allowed origin for CORS headers
+
+Resources:
+  # -------------------------------------------------------------
+  # 1. Authentication: AWS Cognito User Pool (50k MAUs Free Tier)
+  # -------------------------------------------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-users'
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-web-client'
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # -------------------------------------------------------------
+  # 2. HTTP API: Amazon API Gateway (1M calls Free Tier)
+  # -------------------------------------------------------------
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref AppClientOrigin
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - GET
+          - POST
+          - DELETE
+          - OPTIONS
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: CognitoAuth
+        Authorizers:
+          CognitoAuth:
+            IdentitySource: '$request.header.Authorization'
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+              audience:
+                - !Ref UserPoolClient
+
+  # -------------------------------------------------------------
+  # 3. Serverless Compute: AWS Lambda (1M requests & 3.2M sec compute)
+  # -------------------------------------------------------------
+  SimXSphereApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Handler: api.handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref PackagesTable
+          BUCKET_NAME: !Ref StorageBucket
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+                - dynamodb:DeleteItem
+              Resource: !GetAtt PackagesTable.Arn
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:DeleteObject
+              Resource: !Sub '${StorageBucket.Arn}/packages/*'
+      Events:
+        ListPackages:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /packages
+            Method: GET
+        CreatePackage:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /packages
+            Method: POST
+        CompletePackage:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /packages/{id}/complete
+            Method: POST
+        GetDownloadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /packages/{id}/download-url
+            Method: GET
+        DeletePackage:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /packages/{id}
+            Method: DELETE
+
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SimXSphereApiFunction}'
+      RetentionInDays: 7
+
+  # -------------------------------------------------------------
+  # 4. Metadata: Amazon DynamoDB (25 GB & 25 RCU/WCU Free Tier)
+  # -------------------------------------------------------------
+  PackagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-packages'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  # -------------------------------------------------------------
+  # 5. Payloads: Amazon S3 Private Bucket (5 GB Free Tier)
+  # -------------------------------------------------------------
+  StorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-payloads-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - PUT
+              - POST
+              - GET
+            AllowedOrigins:
+              - !Ref AppClientOrigin
+            MaxAge: 3600
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoCleanOldPackages
+            Status: Enabled
+            ExpirationInDays: 30
+
+Outputs:
+  HttpApiUrl:
+    Description: HTTP API Gateway Endpoint URL
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+  StorageBucketName:
+    Description: Private S3 Storage Bucket
+    Value: !Ref StorageBucket
