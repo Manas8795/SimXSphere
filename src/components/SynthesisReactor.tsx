@@ -117,14 +117,14 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="lab-badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                Stoichiometric Synthesis Engine
+              <span className="lab-badge" style={{ background: '#dcfce7', color: '#166534', border: '1.5px solid #86efac' }}>
+                ✨ Magic Chemistry Mixer
               </span>
-              <span className="lab-badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>
-                Strict Rule Validation
+              <span className="lab-badge" style={{ background: '#fef08a', color: '#854d0e', border: '1.5px solid #facc15' }}>
+                🌟 100% Real Science
               </span>
             </div>
-            <h2 style={{ fontSize: 20, marginTop: 4 }}>Elemental Combination & Compound Synthesizer</h2>
+            <h2 style={{ fontSize: 22, marginTop: 4, fontFamily: 'var(--font-display)' }}>⚗️ Magic Compound Synthesizer!</h2>
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
@@ -133,7 +133,7 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
               className="lab-btn lab-btn-secondary"
               onClick={() => handleApplyPreset([{ symbol: 'H', ratio: 2 }, { symbol: 'O', ratio: 1 }])}
             >
-              Reset to H₂O
+              💧 Water (H₂O)
             </button>
             {compound && onSaveCompoundExperiment && (
               <button
@@ -141,7 +141,7 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
                 className="lab-btn lab-btn-primary"
                 onClick={handleSave}
               >
-                {saveSuccess ? '✓ Saved to Lab Runs' : '💾 Record Synthesis Run'}
+                {saveSuccess ? '🎉 Saved to Discoveries!' : '⭐ Save Discovery'}
               </button>
             )}
           </div>
@@ -149,16 +149,16 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
 
         {/* Quick Presets Buttons */}
         <div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Curated Educational Synthesis Presets:
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#166534', fontFamily: 'var(--font-display)' }}>
+            🎈 Fun Compound Recipes (Click any recipe to mix!):
           </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
             {presets.map((p) => (
               <button
                 key={p.label}
                 type="button"
                 className="lab-btn lab-btn-secondary"
-                style={{ fontSize: 11, padding: '4px 9px' }}
+                style={{ fontSize: 12, padding: '5px 12px' }}
                 onClick={() => handleApplyPreset(p.items)}
               >
                 {p.label}

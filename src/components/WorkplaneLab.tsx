@@ -623,13 +623,13 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
           }}
         >
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--lab-text)', margin: 0 }}>
-              Reaction Workplane
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lab-text)', margin: 0, fontFamily: 'var(--font-display)' }}>
+              🧪 Kids Mix & React Lab!
             </h1>
-            <p style={{ fontSize: '0.8rem', color: 'var(--lab-text-muted)', margin: '2px 0 0 0' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--lab-text-muted)', margin: '4px 0 0 0', fontWeight: 700 }}>
               {hasBeaker
-                ? 'Reaction beaker positioned on the left. Stage element spheres on the right canvas and combine in the vessel.'
-                : 'Workplane canvas is clear. Stage elements on the canvas or place a reaction beaker to begin.'}
+                ? '✨ Drag element spheres into the beaker, then hit "Mix & React" to watch magic happen!'
+                : '🌱 Play bench is ready! Place the reaction beaker or drop colorful element spheres to get started.'}
             </p>
           </div>
 
@@ -640,14 +640,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                 type="button"
                 className="lab-btn lab-btn-primary"
                 onClick={() => setHasBeaker(true)}
-                style={{ gap: 6, fontWeight: 700 }}
+                style={{ gap: 6, fontWeight: 800 }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
-                  <path d="M8.5 2h7" />
-                  <path d="M7 16h10" />
-                </svg>
-                Place Reaction Beaker
+                <span>⚗️</span>
+                Place Magic Beaker
               </button>
             ) : (
               <button
@@ -661,7 +657,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                 }}
                 style={{ gap: 6 }}
               >
-                Remove Beaker
+                Put Away Beaker
               </button>
             )}
 
@@ -671,13 +667,8 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
               onClick={handleClearWorkplane}
               style={{ gap: 6 }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M8 16H3v5" />
-              </svg>
-              Clear Canvas
+              <span>🧹</span>
+              Clear Bench
             </button>
           </div>
         </div>
@@ -726,11 +717,11 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 800, fontSize: '0.98rem', color: 'var(--lab-text)' }}>
-                    Reaction Vessel (Borosilicate 500 mL)
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--lab-text)', fontFamily: 'var(--font-display)' }}>
+                    🧪 Magic Reaction Beaker
                   </span>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--lab-text-muted)' }}>
-                    Standard STP Conditions (298 K, 1 atm)
+                  <div style={{ fontSize: '0.76rem', color: 'var(--lab-text-muted)', fontWeight: 700 }}>
+                    ✨ 500 mL Borosilicate • Room Temp (25°C)
                   </div>
                 </div>
 
@@ -741,16 +732,14 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   onClick={handleSimulateReaction}
                   disabled={beakerSpheres.length < 2 || isSimulating}
                   style={{
-                    padding: '6px 14px',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
+                    padding: '8px 16px',
+                    fontSize: '0.88rem',
+                    fontWeight: 800,
                     gap: 6,
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  {isSimulating ? 'Synthesizing...' : 'Synthesize'}
+                  <span>🎉</span>
+                  {isSimulating ? 'Mixing...' : 'Mix & React!'}
                 </button>
               </div>
 
@@ -773,15 +762,15 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   <path
                     d="M 20 20 L 32 30 L 208 30 L 220 20"
                     fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="3.5"
+                    stroke="#86efac"
+                    strokeWidth="4"
                     strokeLinecap="round"
                   />
                   <path
                     d="M 32 30 L 32 250 Q 32 265 48 265 L 192 265 Q 208 265 208 250 L 208 30"
                     fill="none"
-                    stroke="#94a3b8"
-                    strokeWidth="2.8"
+                    stroke="#16a34a"
+                    strokeWidth="3.5"
                   />
                   {/* Graduated Ticks */}
                   {[
@@ -792,8 +781,8 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                     { y: 240, label: '100 mL' },
                   ].map((tick) => (
                     <g key={tick.label}>
-                      <line x1="175" y1={tick.y} x2="200" y2={tick.y} stroke="#64748b" strokeWidth="1.5" />
-                      <text x="170" y={tick.y + 3.5} textAnchor="end" fill="#64748b" fontSize="8" fontFamily="var(--lab-font-mono)">
+                      <line x1="175" y1={tick.y} x2="200" y2={tick.y} stroke="#15803d" strokeWidth="2" />
+                      <text x="170" y={tick.y + 3.5} textAnchor="end" fill="#15803d" fontSize="9" fontWeight="700" fontFamily="var(--font-display)">
                         {tick.label}
                       </text>
                     </g>
@@ -887,8 +876,8 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                       </span>
                     </div>
                   ) : beakerSpheres.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
-                      Drop element spheres here to combine
+                    <div style={{ textAlign: 'center', color: '#15803d', fontSize: '0.84rem', fontWeight: 700, padding: '0 10px', fontFamily: 'var(--font-display)' }}>
+                      ✨ Drop colorful element spheres here to mix!
                     </div>
                   ) : (
                     /* ELEMENT SPHERES INSIDE BEAKER */

@@ -41,9 +41,9 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Category Legend Bar */}
-      <div className="lab-card" style={{ padding: '12px 18px' }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Standard Chemical Families
+      <div className="lab-card" style={{ padding: '14px 20px' }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#166534', marginBottom: 10, fontFamily: 'var(--font-display)' }}>
+          🧱 Element Super-Families (Tap any block to inspect!)
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {categories.map((cat) => (
@@ -53,21 +53,23 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '3px 8px',
-                borderRadius: 4,
+                padding: '4px 10px',
+                borderRadius: 8,
                 background: cat.bg,
                 color: cat.text,
-                fontSize: 11,
-                fontWeight: 600,
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: 'var(--font-display)',
+                border: '1px solid rgba(0,0,0,0.06)',
               }}
             >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.text }} />
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: cat.text }} />
               {cat.label}
             </div>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', fontSize: 11, color: 'var(--text-muted)' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', border: '2px solid #059669', background: '#ecfdf5' }} />
-            Green Border = Supported in Synthesis Reactor
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', fontSize: 12, fontWeight: 700, color: '#166534' }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid #16a34a', background: '#dcfce7' }} />
+            ✨ Green Border = Ready to Mix in Magic Reactor!
           </div>
         </div>
       </div>
@@ -146,7 +148,7 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({
                 className="lab-btn lab-btn-primary"
                 onClick={() => onAddToReactor(selectedElement)}
               >
-                + Add {selectedElement.symbol} to Synthesis Reactor
+                <span>✨</span> Add {selectedElement.symbol} to Magic Reactor!
               </button>
             )}
           </div>

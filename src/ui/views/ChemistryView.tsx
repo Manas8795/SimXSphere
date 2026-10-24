@@ -98,16 +98,16 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Top Academic Banner */}
-      <div className="glass-panel" style={{ padding: 24, borderLeft: '4px solid var(--accent-primary)' }}>
+      <div className="glass-panel" style={{ padding: 24, borderLeft: '6px solid #22c55e' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <span className="badge badge-indigo">Aqueous Physical Chemistry</span>
-              <span className="badge badge-emerald">Interactive Virtual Lab</span>
+              <span className="badge badge-emerald">💧 Rainbow Color Science</span>
+              <span className="badge badge-indigo">✨ Acids, Bases & Magic Indicators</span>
             </div>
-            <h1 style={{ fontSize: 24, color: '#0f172a' }}>Chemical Reaction & Solution Dynamics Lab</h1>
-            <p style={{ maxWidth: 850, fontSize: 14 }}>
-              Simulate aqueous acid-base titrations, solubility precipitations, ligand complexation, and gas evolution with real thermodynamic enthalpy changes and stoichiometric equilibria.
+            <h1 style={{ fontSize: 24, color: '#064e3b', fontFamily: 'var(--font-display)' }}>💧 Colorful Solution & Titration Lab!</h1>
+            <p style={{ maxWidth: 850, fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
+              Pour liquids from Flask A and Flask B to watch magical rainbow color shifts, bubbly gas clouds, and sparkling precipitates!
             </p>
           </div>
 
@@ -116,18 +116,18 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
               id="mix-chemicals-btn"
               type="button"
               className="btn btn-primary"
-              style={{ padding: '10px 20px', fontSize: '14px' }}
+              style={{ padding: '10px 20px', fontSize: '15px', fontWeight: 800 }}
               disabled={isReacting}
               onClick={handleMixReaction}
             >
-              {isReacting ? '⚗️ Reacting...' : '⚗️ Mix Reagents & React'}
+              {isReacting ? '✨ Mixing Rainbows...' : '⚗️ Pour & Mix Colors!'}
             </button>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={handleSave}
             >
-              {saveSuccess ? '✓ Saved to Lab Runs' : '💾 Record Experiment'}
+              {saveSuccess ? '🎉 Saved to Discoveries!' : '⭐ Save Discovery'}
             </button>
           </div>
         </div>

@@ -34,32 +34,32 @@ export const EquationValidatorView: React.FC = () => {
       {/* Overview Banner */}
       <div className="lab-card" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <span className="lab-badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-            Stoichiometric Law of Conservation of Mass
+          <span className="lab-badge" style={{ background: '#dcfce7', color: '#166534', border: '1.5px solid #86efac' }}>
+            ⚖️ Balanced Scale Lab
           </span>
-          <span className="lab-badge" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>
-            Atom Conservation Inspector
+          <span className="lab-badge" style={{ background: '#fef08a', color: '#854d0e', border: '1.5px solid #facc15' }}>
+            ✨ No Atoms Lost!
           </span>
         </div>
-        <h2 style={{ fontSize: 20 }}>Chemical Equation & Atom Count Validator</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
-          Verify that every atom present on the reactant side is conserved on the product side. Supports coefficients, phase labels ((s), (l), (g), (aq)), and nested parentheses (e.g. Ca(OH)2, Al2(SO4)3).
+        <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)' }}>⚖️ Chemical Equation Balancer!</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontWeight: 700 }}>
+          Make sure every single atom on the left side matches the right side! Tap a fun challenge below to test.
         </p>
       </div>
 
       {/* Editor & Presets */}
       <div className="lab-card" style={{ padding: 20 }}>
         <div style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-            Click sample to test:
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#166534', fontFamily: 'var(--font-display)' }}>
+            🎈 Click a challenge equation to test:
           </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
             {sampleEquations.map((s) => (
               <button
                 key={s.label}
                 type="button"
                 className="lab-btn lab-btn-secondary"
-                style={{ fontSize: 11, padding: '4px 9px' }}
+                style={{ fontSize: 12, padding: '5px 12px' }}
                 onClick={() => handleValidate(s.eq)}
               >
                 {s.label}
@@ -70,8 +70,8 @@ export const EquationValidatorView: React.FC = () => {
 
         <div className="form-group">
           <label className="form-label">
-            <span>Equation Input</span>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Use →, {'->'}, or = between reactants and products</span>
+            <span>Equation Formula</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Use →, {'->'}, or = between sides</span>
           </label>
           <div style={{ display: 'flex', gap: 10 }}>
             <input
@@ -87,7 +87,7 @@ export const EquationValidatorView: React.FC = () => {
               className="lab-btn lab-btn-primary"
               onClick={() => handleValidate(equationInput)}
             >
-              Verify Conservation
+              <span>🔍</span> Check Balance!
             </button>
           </div>
         </div>

@@ -130,9 +130,9 @@ export const App: React.FC = () => {
           <div className="lab-card" style={{ padding: 22 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
-                <h2 style={{ fontSize: 20 }}>Saved Laboratory Runs ({labRuns.length})</h2>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  All verified synthesis and reaction experiments recorded in this local session.
+                <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)' }}>📓 My Science Discoveries ({labRuns.length})</h2>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
+                  All the wonderful compounds and colorful reactions you have discovered!
                 </p>
               </div>
 
@@ -142,14 +142,14 @@ export const App: React.FC = () => {
                   className="lab-btn lab-btn-danger"
                   onClick={handleClearAllRuns}
                 >
-                  Clear All History
+                  Clear All Discoveries
                 </button>
               )}
             </div>
 
             {labRuns.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '36px 12px', color: 'var(--text-muted)' }}>
-                No experiments recorded yet. Use the Compound Synthesizer or Aqueous Vessel to test and save reactions.
+              <div style={{ textAlign: 'center', padding: '44px 16px', color: '#166534', fontFamily: 'var(--font-display)', fontSize: 16 }}>
+                🎈 No discoveries recorded yet! Try mixing elements in the <strong>Mix & React Lab</strong> or pouring colorful solutions in <strong>Color Titration</strong> to save your first experiment!
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
