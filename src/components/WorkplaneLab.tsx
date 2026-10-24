@@ -345,44 +345,44 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
         style={{
           width: '340px',
           minWidth: '340px',
-          background: '#ffffff',
-          borderRight: '1px solid var(--lab-border)',
+          background: 'var(--lab-surface)',
+          borderRight: '3px solid var(--wood-frame)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 10,
         }}
       >
-        <div style={{ padding: '1.25rem 1rem 0.75rem', borderBottom: '1px solid var(--lab-border)' }}>
+        <div style={{ padding: '1.25rem 1rem 0.75rem', borderBottom: '2px solid var(--wood-frame)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--lab-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-display)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--wood-frame)" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 3a9 9 0 0 1 9 9" />
               </svg>
-              Elements Selector
+              Elements Shelf
             </h2>
-            <span className="lab-badge" style={{ background: '#f1f5f9', color: '#475569' }}>
+            <span className="lab-badge" style={{ background: 'var(--sticky-yellow)', color: 'var(--sticky-yellow-text)', fontWeight: 800 }}>
               {filteredElements.length} Elements
             </span>
           </div>
 
           {/* Tab Selector: Periodic Elements vs Reagents */}
-          <div style={{ display: 'flex', background: 'var(--lab-bg)', padding: 3, borderRadius: 8, marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', background: 'var(--lab-surface-subtle)', padding: 3, borderRadius: 10, border: '1.5px solid var(--wood-frame)', marginBottom: '0.75rem' }}>
             <button
               type="button"
               className={`lab-btn ${sidebarTab === 'elements' ? 'lab-btn-primary' : 'lab-btn-ghost'}`}
-              style={{ flex: 1, padding: '4px 8px', fontSize: '0.78rem' }}
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem' }}
               onClick={() => setSidebarTab('elements')}
             >
-              Periodic Elements (Spheres)
+              Element Blocks
             </button>
             <button
               type="button"
               className={`lab-btn ${sidebarTab === 'compounds' ? 'lab-btn-primary' : 'lab-btn-ghost'}`}
-              style={{ flex: 1, padding: '4px 8px', fontSize: '0.78rem' }}
+              style={{ flex: 1, padding: '5px 8px', fontSize: '0.8rem' }}
               onClick={() => setSidebarTab('compounds')}
             >
-              Chemical Reagents
+              Reagents
             </button>
           </div>
 
@@ -394,14 +394,14 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
               placeholder={sidebarTab === 'elements' ? 'Search element (H, O, Fe, Na)...' : 'Search reagent (HCl, NaOH)...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: '100%', paddingLeft: '32px', fontSize: '0.82rem' }}
+              style={{ width: '100%', paddingLeft: '32px', fontSize: '0.85rem' }}
             />
             <svg
               width="14"
               height="14"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#94a3b8"
+              stroke="var(--wood-frame)"
               strokeWidth="2.5"
               style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }}
             >
@@ -418,7 +418,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   key={cat}
                   type="button"
                   className={`lab-btn ${elementCategory === cat ? 'lab-btn-primary' : 'lab-btn-secondary'}`}
-                  style={{ padding: '3px 8px', fontSize: '0.72rem', textTransform: 'capitalize' }}
+                  style={{ padding: '3px 9px', fontSize: '0.75rem', textTransform: 'capitalize' }}
                   onClick={() => setElementCategory(cat)}
                 >
                   {cat}
@@ -440,12 +440,12 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   className="lab-card element-sphere-card"
                   style={{
                     padding: '0.75rem',
-                    borderRadius: '12px',
-                    background: '#ffffff',
-                    border: '1px solid var(--lab-border)',
+                    borderRadius: '14px',
+                    background: 'var(--lab-surface-subtle)',
+                    border: '2px solid var(--wood-frame)',
                     cursor: 'grab',
                     transition: 'all 0.15s ease',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    boxShadow: '0 3px 0 var(--wood-shadow)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
@@ -459,7 +459,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                       height: '46px',
                       borderRadius: '50%',
                       background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${el.color} 50%, #0f172a 100%)`,
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.18), inset -2px -2px 5px rgba(0,0,0,0.4)',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3), inset -2px -2px 5px rgba(0,0,0,0.5)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
@@ -494,15 +494,15 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   {/* Element Description & Actions */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--lab-text)' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
                         {el.name}
                       </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--lab-text-muted)', fontFamily: 'var(--lab-font-mono)' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'var(--lab-font-mono)', fontWeight: 800 }}>
                         {el.atomicMass.toFixed(2)} u
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.72rem', color: 'var(--lab-text-muted)', textTransform: 'capitalize', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textTransform: 'capitalize', marginTop: 2, fontWeight: 700 }}>
                       {el.category.replace(/-/g, ' ')} • {el.standardState}
                     </div>
 
@@ -519,7 +519,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           <circle cx="12" cy="12" r="3" />
                           <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
                         </svg>
-                        Substructure
+                        3D Orbit
                       </button>
 
                       {/* Add Sphere to Canvas */}
@@ -557,26 +557,26 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   className="lab-card"
                   style={{
                     padding: '0.75rem',
-                    borderRadius: '10px',
-                    background: '#ffffff',
-                    border: '1px solid var(--lab-border)',
+                    borderRadius: '12px',
+                    background: 'var(--lab-surface-subtle)',
+                    border: '2px solid var(--wood-frame)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span
-                      style={{ fontFamily: 'var(--lab-font-mono)', fontWeight: 700, color: 'var(--lab-primary)' }}
+                      style={{ fontFamily: 'var(--lab-font-mono)', fontWeight: 800, color: 'var(--text-secondary)' }}
                       dangerouslySetInnerHTML={{ __html: chem.formulaHtml }}
                     />
                     <button
                       type="button"
                       className="lab-btn lab-btn-secondary"
-                      style={{ padding: '2px 6px', fontSize: '0.68rem' }}
+                      style={{ padding: '2px 8px', fontSize: '0.7rem' }}
                       onClick={() => setInspectChemical(chem)}
                     >
                       3D
                     </button>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--lab-text)', marginTop: 4 }}>
+                  <div style={{ fontSize: '0.82rem', color: '#ffffff', fontWeight: 700, marginTop: 4 }}>
                     {chem.name}
                   </div>
                 </div>
@@ -599,7 +599,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          background: 'var(--lab-bg)',
+          background: 'var(--lab-surface)',
+          border: '8px solid var(--wood-frame)',
+          borderRadius: '24px',
+          boxShadow: '0 8px 0 var(--wood-bevel), 0 16px 36px rgba(0,0,0,0.45), inset 0 0 35px rgba(0,0,0,0.3)',
           position: 'relative',
           overflowY: 'auto',
           padding: '1.25rem 1.5rem',
@@ -608,25 +611,25 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
           if (activeContextMenu) setActiveContextMenu(null);
         }}
       >
-        {/* Workspace Toolbar */}
+        {/* Workspace Toolbar styled with chalkboard wood & sticky notes */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             marginBottom: '1rem',
-            background: '#ffffff',
+            background: 'var(--lab-surface-subtle)',
             padding: '0.85rem 1.25rem',
-            borderRadius: '12px',
-            border: '1px solid var(--lab-border)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            borderRadius: '16px',
+            border: '2.5px solid var(--wood-frame)',
+            boxShadow: '0 4px 0 var(--wood-shadow)',
           }}
         >
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--lab-text)', margin: 0, fontFamily: 'var(--font-display)' }}>
+            <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', margin: 0, fontFamily: 'var(--font-display)' }}>
               🧪 Kids Mix & React Lab!
             </h1>
-            <p style={{ fontSize: '0.85rem', color: 'var(--lab-text-muted)', margin: '4px 0 0 0', fontWeight: 700 }}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: '4px 0 0 0', fontWeight: 700 }}>
               {hasBeaker
                 ? '✨ Drag element spheres into the beaker, then hit "Mix & React" to watch magic happen!'
                 : '🌱 Play bench is ready! Place the reaction beaker or drop colorful element spheres to get started.'}
@@ -695,10 +698,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
               onDragLeave={() => setIsDragOverBeaker(false)}
               onDrop={handleDropOnBeaker}
               style={{
-                background: '#ffffff',
-                borderRadius: '16px',
-                border: isDragOverBeaker ? '2px dashed var(--lab-primary)' : '1px solid var(--lab-border)',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                background: 'var(--lab-surface)',
+                borderRadius: '18px',
+                border: isDragOverBeaker ? '3.5px dashed var(--border-focus)' : '3.5px solid var(--wood-frame)',
+                boxShadow: '0 5px 0 var(--wood-bevel), 0 10px 24px rgba(0,0,0,0.35)',
                 padding: '1.25rem',
                 display: 'flex',
                 flexDirection: 'column',
@@ -712,15 +715,15 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   paddingBottom: '0.75rem',
-                  borderBottom: '1px solid var(--lab-border)',
+                  borderBottom: '2px solid var(--wood-frame)',
                   marginBottom: '1rem',
                 }}
               >
                 <div>
-                  <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--lab-text)', fontFamily: 'var(--font-display)' }}>
+                  <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#ffffff', fontFamily: 'var(--font-display)' }}>
                     🧪 Magic Reaction Beaker
                   </span>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--lab-text-muted)', fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                     ✨ 500 mL Borosilicate • Room Temp (25°C)
                   </div>
                 </div>
@@ -932,10 +935,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
               {/* BEAKER REACTANTS TRAY */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--lab-text)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ffffff' }}>
                     Spheres in Beaker ({beakerSpheres.length})
                   </span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--lab-text-muted)' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                     Right-click to tune
                   </span>
                 </div>
@@ -948,16 +951,17 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        background: '#f8fafc',
-                        border: '1px solid var(--lab-border)',
+                        background: 'var(--lab-surface-subtle)',
+                        border: '1.5px solid var(--wood-frame)',
                         padding: '3px 8px',
                         borderRadius: '20px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                       }}
                     >
-                      <span style={{ fontWeight: 800, color: 'var(--lab-primary)', fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 800, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                         {sphere.element.symbol}
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--lab-text)' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#ffffff', fontWeight: 600 }}>
                         {sphere.count}x
                       </span>
 
@@ -999,29 +1003,30 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   style={{
                     marginTop: '1rem',
                     padding: '0.85rem',
-                    borderRadius: '10px',
-                    background: synthesisResult.success ? '#f0fdf4' : '#fef2f2',
-                    border: synthesisResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                    borderRadius: '12px',
+                    background: synthesisResult.success ? 'rgba(20, 56, 40, 0.95)' : 'rgba(69, 10, 10, 0.95)',
+                    border: synthesisResult.success ? '2px solid #34d399' : '2px solid #ef4444',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
                   }}
                 >
                   {synthesisResult.success && synthesisResult.compound ? (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#166534' }}>
+                        <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                           Formed: {synthesisResult.compound.commonName}
                         </span>
-                        <span className="lab-badge" style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.7rem' }}>
+                        <span className="lab-badge" style={{ background: '#166534', color: '#bbf7d0', border: '1px solid #34d399', fontSize: '0.7rem' }}>
                           {synthesisResult.compound.bondType}
                         </span>
                       </div>
-                      <div style={{ fontFamily: 'var(--lab-font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--lab-text)', marginBottom: 4 }}>
+                      <div style={{ fontFamily: 'var(--lab-font-mono)', fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', marginBottom: 4 }}>
                         {synthesisResult.compound.synthesisEquation}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#166534' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         ΔH: {synthesisResult.compound.energyChangeKj !== null ? `${synthesisResult.compound.energyChangeKj} kJ/mol` : 'Unmeasured (Candidate model)'} • {synthesisResult.compound.molarMass} g/mol
                       </div>
 
-                      <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid #bbf7d0' }}>
+                      <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
                         <div style={{ display: 'flex', gap: '6px' }}>
                           <button
                             type="button"
@@ -1044,11 +1049,12 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                             className="lab-btn"
                             style={{
                               flex: 1.2,
-                              background: showStoichiometry ? '#15803d' : '#dcfce7',
-                              color: showStoichiometry ? '#ffffff' : '#15803d',
+                              background: showStoichiometry ? '#15803d' : 'var(--wood-frame)',
+                              color: showStoichiometry ? '#ffffff' : '#331f0a',
+                              border: '1px solid var(--wood-bevel)',
                               fontSize: '0.72rem',
                               padding: '5px 8px',
-                              fontWeight: 700,
+                              fontWeight: 800,
                               gap: 4,
                               justifyContent: 'center',
                             }}
@@ -1067,14 +1073,14 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           const stoich = getStoichiometryResult();
                           if (!stoich) return null;
                           return (
-                            <div style={{ marginTop: '0.75rem', background: '#ffffff', borderRadius: '8px', padding: '0.75rem', border: '1px solid #bbf7d0' }}>
-                              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', marginBottom: 6 }}>
+                            <div style={{ marginTop: '0.75rem', background: 'var(--lab-surface)', borderRadius: '10px', padding: '0.75rem', border: '2px solid var(--wood-frame)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', marginBottom: 6 }}>
                                 Quantitative Mass Inputs (grams)
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
                                 {beakerSpheres.map((s) => (
-                                  <div key={s.instanceId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem' }}>
-                                    <span style={{ fontWeight: 700 }}>
+                                  <div key={s.instanceId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+                                    <span style={{ fontWeight: 700, color: '#ffffff' }}>
                                       {s.element.symbol} ({s.element.name}):
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1088,42 +1094,44 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                                           setMassInputs((prev) => ({ ...prev, [s.element.symbol]: val }));
                                         }}
                                         style={{
-                                          width: '70px',
-                                          padding: '2px 6px',
+                                          width: '75px',
+                                          padding: '3px 6px',
                                           fontFamily: 'var(--lab-font-mono)',
                                           fontSize: '0.75rem',
-                                          border: '1px solid #cbd5e1',
-                                          borderRadius: '4px',
+                                          background: 'var(--lab-surface-subtle)',
+                                          color: '#ffffff',
+                                          border: '1.5px solid var(--wood-frame)',
+                                          borderRadius: '6px',
                                           textAlign: 'right',
                                         }}
                                       />
-                                      <span style={{ color: '#64748b' }}>g</span>
+                                      <span style={{ color: 'var(--text-muted)' }}>g</span>
                                     </div>
                                   </div>
                                 ))}
                               </div>
 
                               {/* Limiting Reagent Callout */}
-                              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 8px', marginBottom: 6 }}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b' }}>
+                              <div style={{ background: 'rgba(90, 20, 20, 0.85)', border: '1.5px solid #ef4444', borderRadius: '8px', padding: '6px 8px', marginBottom: 6 }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
                                   Limiting Reactant: {stoich.limitingReagentName} ({stoich.limitingReagentSymbol})
                                 </div>
-                                <div style={{ fontSize: '0.68rem', color: '#7f1d1d' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#fca5a5' }}>
                                   This reactant is completely consumed first, restricting maximum theoretical yield.
                                 </div>
                               </div>
 
                               {/* Yield Output */}
-                              <div style={{ fontSize: '0.72rem', color: '#0f172a', marginBottom: 4 }}>
+                              <div style={{ fontSize: '0.75rem', color: '#ffffff', marginBottom: 4 }}>
                                 <span style={{ fontWeight: 700 }}>Theoretical Yield: </span>
-                                <span style={{ fontFamily: 'var(--lab-font-mono)', fontWeight: 800, color: '#166534' }}>
+                                <span style={{ fontFamily: 'var(--lab-font-mono)', fontWeight: 800, color: '#34d399' }}>
                                   {stoich.theoreticalYieldGrams} g
                                 </span>{' '}
                                 ({stoich.theoreticalYieldMoles} mol {stoich.productFormula})
                               </div>
 
                               {/* Excess Remaining */}
-                              <div style={{ fontSize: '0.7rem', color: '#475569', marginBottom: 4 }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4 }}>
                                 <span style={{ fontWeight: 700 }}>Excess Remaining: </span>
                                 {stoich.excessReagents
                                   .filter((r) => r.symbol !== stoich.limitingReagentSymbol)
@@ -1132,7 +1140,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                               </div>
 
                               {/* Mass Conservation */}
-                              <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'var(--lab-font-mono)' }}>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--lab-font-mono)' }}>
                                 Mass Conservation: {stoich.conservationOfMassCheck.totalInputGrams} g in = {stoich.conservationOfMassCheck.totalOutputGrams} g out ✓
                               </div>
                             </div>
@@ -1142,10 +1150,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                     </div>
                   ) : (
                     <div>
-                      <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#991b1b' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#fecaca' }}>
                         Unsupported Combination
                       </span>
-                      <p style={{ fontSize: '0.75rem', color: '#991b1b', margin: '2px 0 0 0' }}>
+                      <p style={{ fontSize: '0.75rem', color: '#fca5a5', margin: '2px 0 0 0' }}>
                         {synthesisResult.unsupportedReason || 'No reaction under standard STP conditions.'}
                       </p>
                     </div>
@@ -1157,23 +1165,24 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
             {/* RIGHT SIDE: THE OPEN WORKPLANE CANVAS & STAGING BENCH */}
             <div
               style={{
-                background: '#ffffff',
+                background: 'var(--lab-surface)',
                 borderRadius: '16px',
-                border: isDragOverWorkplane ? '2px dashed var(--lab-primary)' : '1px solid var(--lab-border)',
+                border: isDragOverWorkplane ? '3px dashed var(--wood-frame)' : '4px solid var(--wood-frame)',
                 padding: '1.25rem',
                 display: 'flex',
                 flexDirection: 'column',
-                backgroundImage: 'radial-gradient(#e2e8f0 1.2px, transparent 1.2px)',
+                backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px)',
                 backgroundSize: '24px 24px',
                 position: 'relative',
+                boxShadow: '0 6px 0 var(--wood-bevel), inset 0 0 25px rgba(0,0,0,0.35)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--lab-text)' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
                     Workplane Staging Bench ({canvasSpheres.length} Elements)
                   </h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--lab-text-muted)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                     Drag element spheres here from the sidebar shelf. Click "+ Put in Beaker" to transfer them to the left side!
                   </div>
                 </div>
@@ -1185,10 +1194,10 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                     margin: 'auto',
                     textAlign: 'center',
                     padding: '2.5rem',
-                    color: 'var(--lab-text-muted)',
+                    color: 'var(--text-muted)',
                   }}
                 >
-                  <p style={{ fontSize: '0.85rem', margin: 0 }}>
+                  <p style={{ fontSize: '0.9rem', margin: 0, color: 'var(--text-muted)' }}>
                     Workplane bench is empty. Drag element spheres from the sidebar shelf into this area or into the beaker on the left!
                   </p>
                 </div>
@@ -1205,11 +1214,11 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
-                        background: '#ffffff',
-                        border: '1px solid var(--lab-border)',
+                        background: 'var(--lab-surface-subtle)',
+                        border: '2px solid var(--wood-frame)',
                         borderRadius: '30px',
                         padding: '6px 14px 6px 8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
                       }}
                     >
                       {/* 3D Sphere */}
@@ -1219,7 +1228,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           height: '42px',
                           borderRadius: '50%',
                           background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${sphere.element.color} 50%, #0f172a 100%)`,
-                          boxShadow: '0 3px 8px rgba(0,0,0,0.22)',
+                          boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -1233,7 +1242,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                       </div>
 
                       <div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--lab-text)' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>
                           {sphere.element.name} ({sphere.count}x)
                         </div>
                         <div style={{ display: 'flex', gap: 4, marginTop: 3 }}>
@@ -1282,15 +1291,15 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
             style={{
               flex: 1,
               minHeight: '480px',
-              background: '#ffffff',
-              borderRadius: '16px',
-              border: isDragOverWorkplane ? '2px dashed var(--lab-primary)' : '1px solid var(--lab-border)',
+              background: 'var(--lab-surface)',
+              borderRadius: '24px',
+              border: isDragOverWorkplane ? '4px dashed var(--wood-frame)' : '6px solid var(--wood-frame)',
               position: 'relative',
               padding: '1.5rem',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-              backgroundImage: 'radial-gradient(#e2e8f0 1.2px, transparent 1.2px)',
+              boxShadow: '0 8px 0 var(--wood-bevel), 0 16px 36px rgba(0,0,0,0.45), inset 0 0 35px rgba(0,0,0,0.35)',
+              backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px)',
               backgroundSize: '24px 24px',
             }}
           >
@@ -1301,32 +1310,32 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                   textAlign: 'center',
                   maxWidth: '460px',
                   padding: '2.5rem',
-                  color: 'var(--lab-text-muted)',
+                  color: 'var(--text-muted)',
                 }}
               >
                 <div
                   style={{
-                    width: '64px',
-                    height: '64px',
+                    width: '68px',
+                    height: '68px',
                     borderRadius: '50%',
-                    background: '#f1f5f9',
-                    border: '1px dashed #cbd5e1',
+                    background: 'var(--lab-surface-subtle)',
+                    border: '2px dashed var(--wood-frame)',
                     margin: '0 auto 1.25rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2.2">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 8v8M8 12h8" />
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--lab-text)', margin: '0 0 8px 0' }}>
-                  Blank Workplane Canvas
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 8px 0' }}>
+                  Chalkboard Workplane
                 </h3>
-                <p style={{ fontSize: '0.85rem', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
-                  Drag element spheres from the sidebar onto this workplane, or click <strong>"Place reaction beaker"</strong> to stage the vessel on the left side of the workplane.
+                <p style={{ fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem 0', color: 'var(--text-muted)' }}>
+                  Drag element spheres from the sidebar onto this chalkboard, or click <strong style={{ color: 'var(--text-secondary)' }}>"Place reaction beaker"</strong> to stage the vessel on the left side of the workplane.
                 </p>
                 <button
                   type="button"
@@ -1345,7 +1354,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
             ) : (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--lab-text)' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff' }}>
                     Element Spheres on Workplane ({placedSpheres.length})
                   </div>
                   <button
@@ -1375,11 +1384,11 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
-                        background: '#ffffff',
-                        border: '1px solid var(--lab-border)',
+                        background: 'var(--lab-surface-subtle)',
+                        border: '2px solid var(--wood-frame)',
                         borderRadius: '30px',
                         padding: '6px 14px 6px 8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
                       }}
                     >
                       <div
@@ -1388,7 +1397,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                           height: '42px',
                           borderRadius: '50%',
                           background: `radial-gradient(circle at 35% 35%, #ffffff 0%, ${sphere.element.color} 50%, #0f172a 100%)`,
-                          boxShadow: '0 3px 8px rgba(0,0,0,0.22)',
+                          boxShadow: '0 3px 8px rgba(0,0,0,0.35)',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -1402,7 +1411,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
                       </div>
 
                       <div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--lab-text)' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff' }}>
                           {sphere.element.name} ({sphere.count}x)
                         </div>
                         <div style={{ display: 'flex', gap: 4, marginTop: 3 }}>
@@ -1443,30 +1452,30 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
               position: 'fixed',
               top: Math.min(window.innerHeight - 200, activeContextMenu.y),
               left: Math.min(window.innerWidth - 240, activeContextMenu.x),
-              width: '220px',
-              background: '#ffffff',
+              width: '230px',
+              background: 'var(--lab-surface)',
               borderRadius: '12px',
               padding: '1rem',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
-              border: '1px solid var(--lab-border)',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
+              border: '3px solid var(--wood-frame)',
               zIndex: 100,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--lab-text)' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#ffffff' }}>
                 {activeSphereInMenu.element.name} ({activeSphereInMenu.element.symbol})
               </span>
               <button
                 type="button"
                 onClick={() => setActiveContextMenu(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 800 }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: 'var(--lab-text-muted)', marginBottom: 6 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }}>
               Set Proportion / Count:
             </div>
 

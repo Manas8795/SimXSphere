@@ -240,7 +240,7 @@ export const App: React.FC = () => {
                         >
                           {run.tag}
                         </span>
-                        <strong style={{ fontSize: 15, color: '#0f172a' }}>{run.title}</strong>
+                        <strong style={{ fontSize: 15, color: '#ffffff' }}>{run.title}</strong>
                         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.timestamp}</span>
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>

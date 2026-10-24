@@ -50,7 +50,7 @@ export const EquationValidatorView: React.FC = () => {
       {/* Editor & Presets */}
       <div className="lab-card" style={{ padding: 20 }}>
         <div style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#166534', fontFamily: 'var(--font-display)' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-secondary)', fontFamily: 'var(--font-display)' }}>
             🎈 Click a challenge equation to test:
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 8 }}>
@@ -71,7 +71,7 @@ export const EquationValidatorView: React.FC = () => {
         <div className="form-group">
           <label className="form-label">
             <span>Equation Formula</span>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Use →, {'->'}, or = between sides</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Use →, {'->'}, or = between sides</span>
           </label>
           <div style={{ display: 'flex', gap: 10 }}>
             <input
@@ -96,15 +96,15 @@ export const EquationValidatorView: React.FC = () => {
       {/* Validation Status Card */}
       <div className="lab-card" style={{ padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16 }}>Stoichiometric Audit Results</h3>
+          <h3 style={{ fontSize: 16, color: '#ffffff' }}>Stoichiometric Audit Results</h3>
           <span
             className="lab-badge"
             style={{
               fontSize: 13,
               padding: '6px 12px',
-              background: isMalformed ? '#fffbeb' : validation.isBalanced ? '#ecfdf5' : '#fef2f2',
-              color: isMalformed ? '#b45309' : validation.isBalanced ? '#065f46' : '#991b1b',
-              border: `1px solid ${isMalformed ? '#fcd34d' : validation.isBalanced ? '#a7f3d0' : '#fecaca'}`,
+              background: isMalformed ? 'rgba(180, 83, 9, 0.3)' : validation.isBalanced ? 'rgba(20, 56, 40, 0.9)' : 'rgba(69, 10, 10, 0.9)',
+              color: isMalformed ? '#fde047' : validation.isBalanced ? '#86efac' : '#fca5a5',
+              border: `1.5px solid ${isMalformed ? '#fcd34d' : validation.isBalanced ? '#34d399' : '#ef4444'}`,
             }}
           >
             {isMalformed
@@ -118,11 +118,11 @@ export const EquationValidatorView: React.FC = () => {
         {isMalformed && validation.errorMessage && (
           <div
             style={{
-              background: '#fffbeb',
-              border: '1px solid #fde68a',
-              borderRadius: 6,
+              background: 'rgba(180, 83, 9, 0.35)',
+              border: '1.5px solid #fde68a',
+              borderRadius: 8,
               padding: '12px 16px',
-              color: '#92400e',
+              color: '#fef08a',
               fontSize: 13,
               marginBottom: 16,
               display: 'flex',
@@ -130,7 +130,7 @@ export const EquationValidatorView: React.FC = () => {
               gap: 8,
             }}
           >
-            <span style={{ fontWeight: 700 }}>Syntax Issue:</span>
+            <span style={{ fontWeight: 800 }}>Syntax Issue:</span>
             <span>{validation.errorMessage}</span>
           </div>
         )}
@@ -140,7 +140,7 @@ export const EquationValidatorView: React.FC = () => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
-                <tr>
+                <tr style={{ borderBottom: '2px solid var(--wood-frame)', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '10px 14px' }}>Element</th>
                   <th style={{ padding: '10px 14px' }}>Reactant Atom Count</th>
                   <th style={{ padding: '10px 14px' }}>Product Atom Count</th>
@@ -154,15 +154,15 @@ export const EquationValidatorView: React.FC = () => {
                   const matches = rCount === pCount;
 
                   return (
-                    <tr key={el} style={{ background: matches ? '#ffffff' : '#fef2f2' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{el}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)' }}>{rCount}</td>
-                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)' }}>{pCount}</td>
+                    <tr key={el} style={{ background: matches ? 'var(--lab-surface-subtle)' : 'rgba(69, 10, 10, 0.65)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{el}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{rCount}</td>
+                      <td style={{ padding: '10px 14px', fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{pCount}</td>
                       <td style={{ padding: '10px 14px' }}>
                         {matches ? (
-                          <span style={{ color: '#059669', fontWeight: 600 }}>✓ Conserved ({rCount} = {pCount})</span>
+                          <span style={{ color: '#86efac', fontWeight: 700 }}>✓ Conserved ({rCount} = {pCount})</span>
                         ) : (
-                          <span style={{ color: '#dc2626', fontWeight: 600 }}>✕ Mismatch (Δ = {pCount - rCount})</span>
+                          <span style={{ color: '#fca5a5', fontWeight: 700 }}>✕ Mismatch (Δ = {pCount - rCount})</span>
                         )}
                       </td>
                     </tr>

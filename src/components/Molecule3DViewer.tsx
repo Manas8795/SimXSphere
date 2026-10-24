@@ -510,10 +510,10 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
         style={{
           width: '100%',
           maxWidth: '890px',
-          background: isCosmic ? '#0b1120' : '#ffffff',
+          background: isCosmic ? '#0b1120' : 'var(--lab-surface)',
           borderRadius: '18px',
-          boxShadow: isCosmic ? '0 25px 60px rgba(0, 210, 255, 0.2)' : '0 20px 45px rgba(0,0,0,0.18)',
-          border: isCosmic ? '1px solid rgba(56, 189, 248, 0.3)' : '1px solid var(--lab-border)',
+          boxShadow: isCosmic ? '0 25px 60px rgba(0, 210, 255, 0.2)' : '0 20px 45px rgba(0,0,0,0.5), 0 6px 0 var(--wood-bevel)',
+          border: isCosmic ? '1px solid rgba(56, 189, 248, 0.3)' : '3px solid var(--wood-frame)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -529,8 +529,8 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '1.1rem 1.75rem',
-            borderBottom: isCosmic ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid var(--lab-border)',
-            background: isCosmic ? 'linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%)' : '#f8fafc',
+            borderBottom: isCosmic ? '1px solid rgba(56, 189, 248, 0.2)' : '2px solid var(--wood-frame)',
+            background: isCosmic ? 'linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%)' : 'var(--lab-surface-subtle)',
           }}
         >
           <div>
@@ -553,7 +553,7 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
                 style={{
                   fontSize: '1.35rem',
                   fontWeight: 800,
-                  color: isCosmic ? '#f8fafc' : 'var(--lab-text)',
+                  color: '#ffffff',
                   margin: 0,
                   letterSpacing: '-0.02em',
                 }}
@@ -563,9 +563,9 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
               {element && (
                 <span
                   style={{
-                    background: isCosmic ? 'rgba(0, 230, 118, 0.15)' : '#f0fdf4',
-                    color: isCosmic ? '#00e676' : '#166534',
-                    border: isCosmic ? '1px solid rgba(0, 230, 118, 0.4)' : '1px solid #bbf7d0',
+                    background: isCosmic ? 'rgba(0, 230, 118, 0.15)' : '#166534',
+                    color: isCosmic ? '#00e676' : '#bbf7d0',
+                    border: isCosmic ? '1px solid rgba(0, 230, 118, 0.4)' : '1px solid #34d399',
                     fontSize: '0.72rem',
                     fontWeight: 700,
                     padding: '3px 8px',
@@ -576,7 +576,7 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '0.8rem', color: isCosmic ? '#94a3b8' : 'var(--lab-text-muted)', marginTop: 4 }}>
+            <div style={{ fontSize: '0.8rem', color: isCosmic ? '#94a3b8' : 'var(--text-secondary)', marginTop: 4 }}>
               {subtitle}
             </div>
           </div>
@@ -588,15 +588,15 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
               className="lab-btn"
               onClick={() => setThemeMode(isCosmic ? 'vivid_lab' : 'vivid_cosmic')}
               style={{
-                background: isCosmic ? 'rgba(56, 189, 248, 0.15)' : '#f1f5f9',
-                color: isCosmic ? '#38bdf8' : '#0f172a',
-                border: isCosmic ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #cbd5e1',
+                background: isCosmic ? 'rgba(56, 189, 248, 0.15)' : 'var(--lab-surface)',
+                color: isCosmic ? '#38bdf8' : '#ffffff',
+                border: isCosmic ? '1px solid rgba(56, 189, 248, 0.4)' : '1.5px solid var(--wood-frame)',
                 fontSize: '0.75rem',
                 padding: '5px 10px',
                 fontWeight: 700,
               }}
             >
-              {isCosmic ? '✨ Cosmic Neon' : '🔬 Studio Light'}
+              {isCosmic ? '✨ Cosmic Neon' : '🔬 Chalkboard Lab'}
             </button>
 
             {/* Close Button */}
@@ -606,12 +606,12 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
                 onClick={onClose}
                 aria-label="Close"
                 style={{
-                  background: isCosmic ? 'rgba(255, 255, 255, 0.1)' : '#f1f5f9',
-                  border: 'none',
+                  background: isCosmic ? 'rgba(255, 255, 255, 0.1)' : 'var(--lab-surface)',
+                  border: '1.5px solid var(--wood-frame)',
                   cursor: 'pointer',
                   padding: '6px',
                   borderRadius: '8px',
-                  color: isCosmic ? '#f8fafc' : 'var(--lab-text-muted)',
+                  color: isCosmic ? '#f8fafc' : 'var(--text-secondary)',
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1264,8 +1264,9 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
               style={{
                 padding: '5px 10px',
                 fontSize: '0.75rem',
-                background: autoRotate ? 'linear-gradient(135deg, #00d2ff 0%, #0072ff 100%)' : '#e2e8f0',
-                color: autoRotate ? '#ffffff' : '#0f172a',
+                background: autoRotate ? 'linear-gradient(135deg, #00d2ff 0%, #0072ff 100%)' : 'var(--lab-surface-subtle)',
+                color: '#ffffff',
+                border: '1.5px solid var(--wood-frame)',
                 fontWeight: 700,
               }}
               onClick={() => setAutoRotate(!autoRotate)}
@@ -1326,13 +1327,13 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
         <div
           style={{
             padding: '1.25rem 1.75rem',
-            background: isCosmic ? '#0f172a' : '#ffffff',
+            background: isCosmic ? '#0f172a' : 'var(--lab-surface)',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '1.25rem',
-            borderTop: isCosmic ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid var(--lab-border)',
+            borderTop: isCosmic ? '1px solid rgba(56, 189, 248, 0.2)' : '2px solid var(--wood-frame)',
             fontSize: '0.85rem',
-            color: isCosmic ? '#f8fafc' : 'var(--lab-text)',
+            color: '#ffffff',
           }}
         >
           {isElementMode && element ? (

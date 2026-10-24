@@ -105,7 +105,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
               <span className="badge badge-emerald">💧 Rainbow Color Science</span>
               <span className="badge badge-indigo">✨ Acids, Bases & Magic Indicators</span>
             </div>
-            <h1 style={{ fontSize: 24, color: '#064e3b', fontFamily: 'var(--font-display)' }}>💧 Colorful Solution & Titration Lab!</h1>
+            <h1 style={{ fontSize: 24, color: '#ffffff', fontFamily: 'var(--font-display)' }}>💧 Colorful Solution & Titration Lab!</h1>
             <p style={{ maxWidth: 850, fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
               Pour liquids from Flask A and Flask B to watch magical rainbow color shifts, bubbly gas clouds, and sparkling precipitates!
             </p>
@@ -147,12 +147,13 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
             <div style={{
               width: 70,
               height: 95,
-              border: '3px solid #94a3b8',
+              border: '3px solid var(--wood-frame)',
               borderTop: 'none',
               borderRadius: '0 0 10px 10px',
               position: 'relative',
               overflow: 'hidden',
-              background: '#f8fafc',
+              background: 'var(--lab-surface-subtle)',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
             }}>
               <div style={{
                 position: 'absolute',
@@ -161,7 +162,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
                 right: 0,
                 height: `${Math.min(100, (volumeAMl / 100) * 85)}%`,
                 background: reagentA.color,
-                borderTop: '1px solid rgba(0,0,0,0.1)',
+                borderTop: '1px solid rgba(255,255,255,0.2)',
                 transition: 'all 0.3s ease',
               }} />
             </div>
@@ -227,12 +228,13 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
             <div style={{
               width: 70,
               height: 95,
-              border: '3px solid #94a3b8',
+              border: '3px solid var(--wood-frame)',
               borderTop: 'none',
               borderRadius: '0 0 10px 10px',
               position: 'relative',
               overflow: 'hidden',
-              background: '#f8fafc',
+              background: 'var(--lab-surface-subtle)',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
             }}>
               <div style={{
                 position: 'absolute',
@@ -241,7 +243,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
                 right: 0,
                 height: `${Math.min(100, (volumeBMl / 100) * 85)}%`,
                 background: reagentB.color,
-                borderTop: '1px solid rgba(0,0,0,0.1)',
+                borderTop: '1px solid rgba(255,255,255,0.2)',
                 transition: 'all 0.3s ease',
               }} />
             </div>
@@ -297,11 +299,11 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
       </div>
 
       {/* Chemical Reaction Chamber / Main Beaker */}
-      <div className="glass-panel" style={{ padding: 28, background: '#ffffff' }}>
+      <div className="glass-panel" style={{ padding: 28, background: 'var(--lab-surface)', border: '4px solid var(--wood-frame)', boxShadow: '0 6px 0 var(--wood-bevel), inset 0 0 25px rgba(0,0,0,0.35)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24 }}>
           {/* Reaction Beaker Graphic */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 200 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#ffffff', marginBottom: 8 }}>
               MIXING BEAKER ({volumeAMl + volumeBMl} mL Total)
             </div>
 
@@ -312,7 +314,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
                 style={{
                   height: `${Math.min(92, ((volumeAMl + volumeBMl) / 200) * 85 + 10)}%`,
                   background: reactionResult.finalColor,
-                  borderTop: '2px solid rgba(0,0,0,0.15)',
+                  borderTop: '2px solid rgba(255,255,255,0.3)',
                 }}
               >
                 {/* Precipitate layer at bottom if formed */}
@@ -344,13 +346,14 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
             <div style={{
               marginTop: 14,
               padding: '6px 14px',
-              borderRadius: 6,
+              borderRadius: 8,
               background: getPhColor(reactionResult.finalPh),
               color: '#ffffff',
               fontWeight: 800,
               fontSize: 13,
               fontFamily: 'var(--font-mono)',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              border: '1.5px solid var(--wood-frame)',
             }}>
               pH {reactionResult.finalPh.toFixed(2)}
             </div>
@@ -365,7 +368,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
               )}
             </div>
 
-            <h2 style={{ fontSize: 20, color: '#0f172a', marginBottom: 6 }}>
+            <h2 style={{ fontSize: 22, color: '#ffffff', fontWeight: 800, marginBottom: 6 }}>
               {reactionResult.balancedEquation}
             </h2>
 
@@ -376,22 +379,22 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
             {/* Observable Phenomena Alert Boxes */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {reactionResult.precipitateFormed && (
-                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: 12, borderRadius: 8, fontSize: 13 }}>
-                  <strong style={{ color: '#0f172a' }}>🧪 Precipitate Detected: </strong>
-                  <span style={{ color: '#334155' }}>{reactionResult.precipitateFormed}</span>
+                <div style={{ background: 'var(--lab-surface-subtle)', border: '1.5px solid var(--wood-frame)', padding: 12, borderRadius: 8, fontSize: 13 }}>
+                  <strong style={{ color: 'var(--text-secondary)' }}>🧪 Precipitate Detected: </strong>
+                  <span style={{ color: '#ffffff' }}>{reactionResult.precipitateFormed}</span>
                 </div>
               )}
 
               {reactionResult.gasEvolved && (
-                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: 12, borderRadius: 8, fontSize: 13 }}>
-                  <strong style={{ color: '#065f46' }}>💨 Gas Evolution / Effervescence: </strong>
-                  <span style={{ color: '#047857' }}>{reactionResult.gasEvolved}</span>
+                <div style={{ background: 'rgba(20, 56, 40, 0.85)', border: '1.5px solid #34d399', padding: 12, borderRadius: 8, fontSize: 13 }}>
+                  <strong style={{ color: '#bbf7d0' }}>💨 Gas Evolution / Effervescence: </strong>
+                  <span style={{ color: '#ffffff' }}>{reactionResult.gasEvolved}</span>
                 </div>
               )}
 
-              <div style={{ background: '#f1f5f9', padding: 12, borderRadius: 8, fontSize: 13 }}>
-                <strong style={{ color: '#0f172a' }}>Solvated Ionic Species: </strong>
-                <code style={{ color: '#1d4ed8', marginLeft: 6 }}>
+              <div style={{ background: 'var(--lab-surface-subtle)', border: '1.5px solid var(--wood-frame)', padding: 12, borderRadius: 8, fontSize: 13 }}>
+                <strong style={{ color: 'var(--text-secondary)' }}>Solvated Ionic Species: </strong>
+                <code style={{ color: '#38bdf8', marginLeft: 6, fontWeight: 700 }}>
                   {reactionResult.ionicSpecies.join('  +  ')}
                 </code>
               </div>

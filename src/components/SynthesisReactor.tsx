@@ -360,8 +360,8 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
                 {/* Synthesis Overview */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-                    <h2 style={{ fontSize: 28, color: '#0f172a' }} dangerouslySetInnerHTML={{ __html: compound.formulaHtml }} />
-                    <span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    <h2 style={{ fontSize: 28, color: '#ffffff' }} dangerouslySetInnerHTML={{ __html: compound.formulaHtml }} />
+                    <span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>
                       {compound.commonName}
                     </span>
                     <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
@@ -369,31 +369,31 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
                     </span>
                   </div>
 
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: '#1d4ed8', fontWeight: 600, marginTop: 4 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700, marginTop: 4 }}>
                     {compound.synthesisEquation}
                   </div>
                 </div>
 
                 {/* Compound Properties Table */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13 }}>
-                  <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Bond Classification</span>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{compound.bondType} Bonding</div>
+                  <div style={{ background: 'var(--lab-surface-subtle)', padding: 10, borderRadius: 8, border: '1.5px solid var(--wood-frame)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Bond Classification</span>
+                    <div style={{ fontWeight: 700, color: '#ffffff' }}>{compound.bondType} Bonding</div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Standard Physical State</span>
-                    <div style={{ fontWeight: 700, color: '#0f172a', textTransform: 'capitalize' }}>{compound.physicalState}</div>
+                  <div style={{ background: 'var(--lab-surface-subtle)', padding: 10, borderRadius: 8, border: '1.5px solid var(--wood-frame)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Standard Physical State</span>
+                    <div style={{ fontWeight: 700, color: '#ffffff', textTransform: 'capitalize' }}>{compound.physicalState}</div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Molar Mass</span>
-                    <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0f172a' }}>{compound.molarMass} g/mol</div>
+                  <div style={{ background: 'var(--lab-surface-subtle)', padding: 10, borderRadius: 8, border: '1.5px solid var(--wood-frame)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Molar Mass</span>
+                    <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#ffffff' }}>{compound.molarMass} g/mol</div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Standard Enthalpy (ΔH)</span>
-                    <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: compound.isExothermic ? '#b45309' : '#047857' }}>
+                  <div style={{ background: 'var(--lab-surface-subtle)', padding: 10, borderRadius: 8, border: '1.5px solid var(--wood-frame)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Standard Enthalpy (ΔH)</span>
+                    <div style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: compound.isExothermic ? '#fde047' : '#86efac' }}>
                       {compound.energyChangeKj !== null
                         ? `${compound.energyChangeKj} kJ/mol (${compound.isExothermic ? 'Exothermic' : 'Endothermic'})`
                         : 'Unmeasured (Candidate model)'}

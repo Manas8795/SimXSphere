@@ -36,7 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div>
           <span className="lab-brand-title">SimXSphere</span>
           <span className="lab-badge brand-theme-badge" style={{ marginLeft: 8, fontSize: '12px', fontWeight: 800 }}>
-            {theme === 'green-black' ? '⚡ Cyber Green-Black Lab!' : '🧪 Kids Chemistry Fun Lab!'}
+            {theme === 'green-black' ? '🏫 Chalkboard Lab' : '🌱 Meadow Green'}
           </span>
         </div>
       </div>
@@ -144,7 +144,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               fontWeight: 800,
             }}
           >
-            {theme === 'green-black' ? '⚡ Green-Black' : '🌱 Meadow Green'}
+            {theme === 'green-black' ? '🏫 Chalkboard' : '🌱 Meadow Green'}
           </button>
         )}
         <span className="lab-badge mode-badge">
