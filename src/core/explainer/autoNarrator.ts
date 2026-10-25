@@ -95,6 +95,74 @@ export function generateAutoNarration(context: SimulationExplainerContext): {
   }
 
   if (domain === 'chemistry') {
+    if (context.simulationId === 'chemistry-workplane') {
+      const isSynthesized = outputs.isSynthesized === true;
+      const compoundName = String(outputs.compoundName || '');
+      const formula = String(outputs.formula || '');
+      const equation = String(outputs.synthesisEquation || '');
+      const bondType = String(outputs.bondType || 'chemical');
+      const status = String(outputs.status || '');
+      const elementsSummary = String(outputs.elementsSummary || '');
+      const totalAtoms = Number(inputs.totalBeakerAtoms ?? 0);
+      const hasBeaker = inputs.hasBeaker === true;
+
+      if (isSynthesized) {
+        const line1 = `Synthesis successful! ${equation || `${formula} was created`}.`;
+        const line2 = `${compoundName} is held together by ${bondType} bonds with 100% conservation of mass and atoms.`;
+        return {
+          headline: `Synthesized: ${compoundName} (${formula})`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      if (status === 'incompatible') {
+        const line1 = `These elements could not synthesize into a stable molecule under standard octet rules.`;
+        const line2 = `Try adjusting the atom ratios in the beaker or combining elements with complementary valence electrons.`;
+        return {
+          headline: `Reaction Incompatible`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      if (totalAtoms > 0) {
+        const line1 = `Beaker currently holds ${totalAtoms} atom(s): ${elementsSummary}.`;
+        const line2 =
+          totalAtoms >= 2
+            ? `Click "React & Combine" to ignite the reaction and synthesize a new compound!`
+            : `Add another complementary element into the beaker to discover a compound!`;
+        return {
+          headline: `Beaker: ${elementsSummary}`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      if (hasBeaker) {
+        const line1 = `Reaction beaker is ready on the workplane for elemental mixing!`;
+        const line2 = `Drag element blocks from the shelf into the beaker to explore compound synthesis.`;
+        return {
+          headline: `Mix & React Beaker Ready`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      const line1 = `Welcome to the Mix & React Lab! Drag a beaker onto the workplane to begin.`;
+      const line2 = `Combine different elements to observe atomic bonding and synthesize molecules!`;
+      return {
+        headline: `Mix & React Lab`,
+        line1,
+        line2,
+        spokenText: `${line1} ${line2}`,
+      };
+    }
+
     const rxnType = String(outputs.reactionType ?? 'Chemical Reaction');
     const equation = String(outputs.balancedEquation ?? '');
     const ph = outputs.finalPh !== undefined && outputs.finalPh !== null ? Number(outputs.finalPh) : null;

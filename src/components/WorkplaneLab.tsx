@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PERIODIC_TABLE, type ChemicalElement } from '../chemistry-data/elements';
 import { LAB_CHEMICALS, type LabChemicalItem, type ParticleAtom3D } from '../chemistry-data/reagents';
 import {
@@ -8,9 +8,12 @@ import {
 } from '../chemistry-engine/compound-builder';
 import { calculateLimitingReagent, type StoichiometryResult } from '../chemistry-engine/stoichiometry-calc';
 import { Molecule3DViewer } from './Molecule3DViewer';
+import { buildWorkplaneExplainerContext } from '../core/explainer/context-builders/chemistryContext';
+import type { SimulationExplainerContext } from '../core/explainer/types';
 
 interface WorkplaneLabProps {
   onSaveRun?: (title: string, details: string, tag: string) => void;
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
 export interface PlacedElementSphere {
@@ -22,7 +25,7 @@ export interface PlacedElementSphere {
   y: number;
 }
 
-export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
+export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContextChange }) => {
   // Sidebar tab: 'elements' or 'compounds'
   const [sidebarTab, setSidebarTab] = useState<'elements' | 'compounds'>('elements');
   const [elementCategory, setElementCategory] = useState<string>('all');
@@ -71,6 +74,27 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun }) => {
   const beakerSpheres = placedSpheres.filter((s) => s.inBeaker);
   // Spheres resting freely on the canvas staging bench
   const canvasSpheres = placedSpheres.filter((s) => !s.inBeaker);
+
+  // Notify Science Explainer Companion whenever beaker, elements, or reaction simulation updates!
+  useEffect(() => {
+    const beakerElements = beakerSpheres.map((s) => ({
+      symbol: s.element.symbol,
+      name: s.element.name,
+      count: s.count,
+    }));
+    const workplaneElementsCount = canvasSpheres.reduce((acc, s) => acc + s.count, 0);
+
+    const ctx = buildWorkplaneExplainerContext(
+      {
+        hasBeaker,
+        beakerElements,
+        workplaneElementsCount,
+        synthesisResult,
+      },
+      Date.now()
+    );
+    onContextChange?.(ctx);
+  }, [hasBeaker, placedSpheres, synthesisResult, onContextChange]);
 
   // Add an element sphere (either onto workplane or into beaker)
   const addElementSphere = (element: ChemicalElement, targetBeaker: boolean = false) => {

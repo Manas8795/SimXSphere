@@ -107,3 +107,105 @@ export function buildChemistryExplainerContext(
     ],
   };
 }
+
+export interface WorkplaneExplainerData {
+  hasBeaker: boolean;
+  beakerElements: Array<{ symbol: string; name: string; count: number }>;
+  workplaneElementsCount: number;
+  synthesisResult: {
+    success: boolean;
+    compound?: {
+      formula: string;
+      commonName: string;
+      synthesisEquation: string;
+      bondType: string;
+      energyChangeKj: number | null;
+      description?: string;
+    };
+    message?: string;
+  } | null;
+}
+
+export function buildWorkplaneExplainerContext(
+  data: WorkplaneExplainerData,
+  revision: number = 1
+): SimulationExplainerContext {
+  const { hasBeaker, beakerElements, workplaneElementsCount, synthesisResult } = data;
+
+  const totalBeakerAtoms = beakerElements.reduce((acc, el) => acc + el.count, 0);
+  const elementsSummary = beakerElements
+    .map((el) => `${el.count}x ${el.name} (${el.symbol})`)
+    .join(', ');
+
+  const isSynthesized = !!(synthesisResult && synthesisResult.success && synthesisResult.compound);
+  const compound = synthesisResult?.compound;
+
+  const knownFacts: string[] = [
+    'Matter is neither created nor destroyed in chemical reactions (Law of Conservation of Mass).',
+    'Atoms combine in whole-number ratios to satisfy stable electron valence configurations (Octet Rule).',
+  ];
+
+  if (isSynthesized && compound) {
+    knownFacts.push(`Successfully synthesized compound: ${compound.commonName} (${compound.formula}).`);
+    knownFacts.push(`Synthesis reaction equation: ${compound.synthesisEquation}.`);
+    knownFacts.push(`Chemical bond character: ${compound.bondType} bonding.`);
+    if (compound.energyChangeKj !== null) {
+      knownFacts.push(`Reaction energy change (ΔH): ${compound.energyChangeKj} kJ/mol.`);
+    }
+  } else if (synthesisResult && !synthesisResult.success) {
+    knownFacts.push(`The combination of ${elementsSummary || 'selected elements'} did not form a stable chemical compound.`);
+  } else if (totalBeakerAtoms > 0) {
+    knownFacts.push(`Beaker currently contains ${totalBeakerAtoms} atom(s): ${elementsSummary}.`);
+  }
+
+  return {
+    schemaVersion: EXPLAINER_SCHEMA_VERSION,
+    simulationId: 'chemistry-workplane',
+    simulationTitle: isSynthesized && compound ? `Mix & React: ${compound.commonName}` : 'Mix & React Lab',
+    domain: 'chemistry',
+    stateRevision: revision,
+    timestamp: new Date().toISOString(),
+    inputs: {
+      hasBeaker,
+      totalBeakerAtoms,
+      workplaneElementsCount,
+      beakerElements: beakerElements.map((el) => ({ symbol: el.symbol, name: el.name, count: el.count })),
+    },
+    outputs: {
+      status: isSynthesized
+        ? 'synthesized'
+        : synthesisResult && !synthesisResult.success
+        ? 'incompatible'
+        : totalBeakerAtoms > 0
+        ? 'ready_to_react'
+        : hasBeaker
+        ? 'beaker_empty'
+        : 'workspace_empty',
+      isSynthesized,
+      formula: compound?.formula,
+      compoundName: compound?.commonName,
+      synthesisEquation: compound?.synthesisEquation,
+      bondType: compound?.bondType,
+      energyChangeKj: compound?.energyChangeKj ?? undefined,
+      elementsSummary: elementsSummary || undefined,
+    },
+    assumptions: [
+      'Pure elemental reactants with zero contaminating impurities.',
+      'Reaction proceeds to completion under standard classroom laboratory conditions.',
+      'Valence electrons conform to idealized Lewis-octet and covalent/ionic bonding mechanics.',
+    ],
+    knownFacts,
+    unavailableFacts: [
+      'Sub-picosecond transition kinetics and solvent friction are abstracted by the discrete synthesis engine.',
+    ],
+    supportedIntents: [
+      'explain_current_state',
+      'why_did_this_happen',
+      'explain_equations',
+      'explain_changes',
+      'what_if',
+      'ask_question',
+    ],
+  };
+}
+

@@ -10,7 +10,7 @@ import { PERIODIC_TABLE, type ChemicalElement } from './chemistry-data/elements'
 import { ProbabilityView } from './ui/views/ProbabilityView';
 import { ProjectileView } from './ui/views/ProjectileView';
 import { ExplainerManager } from './ui/components/explainer/ExplainerManager';
-import { buildProjectileExplainerContext } from './core/explainer/context-builders/projectileContext';
+import { buildWorkplaneExplainerContext } from './core/explainer/context-builders/chemistryContext';
 import type { SimulationExplainerContext } from './core/explainer/types';
 
 export interface SavedExperimentRun {
@@ -31,10 +31,15 @@ export const App: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(() => PERIODIC_TABLE[0]); // Hydrogen default
 
   // Explainer Context State: tracks current and previous simulation snapshots for local AI explanations
+  // Default to Mix & React Chemistry Workplane (the initial active tab)
   const [activeExplainerContext, setActiveExplainerContext] = useState<SimulationExplainerContext>(() =>
-    buildProjectileExplainerContext(
-      { initialSpeed: 20, angleDeg: 45, gravity: 9.81 },
-      { range: 40.775, flightTime: 2.883, maxHeight: 10.194, trajectory: [] },
+    buildWorkplaneExplainerContext(
+      {
+        hasBeaker: false,
+        beakerElements: [],
+        workplaneElementsCount: 0,
+        synthesisResult: null,
+      },
       1
     )
   );
@@ -142,7 +147,14 @@ export const App: React.FC = () => {
     >
       <Navbar
         activeDiscipline={activeDiscipline}
-        onSelectDiscipline={setActiveDiscipline}
+        onSelectDiscipline={(disc) => {
+          if (disc !== activeDiscipline) {
+            if ('speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+            }
+            setActiveDiscipline(disc);
+          }
+        }}
         runCount={labRuns.length}
         theme={theme}
         onSelectTheme={handleSelectTheme}
@@ -154,7 +166,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'workplane' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('workplane')}
+            onClick={() => {
+              if (chemistrySubTab !== 'workplane') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('workplane');
+              }
+            }}
             id="subnav-workplane"
           >
             <span>🧪</span> Mix & React
@@ -162,7 +181,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'table' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('table')}
+            onClick={() => {
+              if (chemistrySubTab !== 'table') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('table');
+              }
+            }}
             id="subnav-table"
           >
             <span>🧱</span> Element Blocks
@@ -170,7 +196,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'reactor' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('reactor')}
+            onClick={() => {
+              if (chemistrySubTab !== 'reactor') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('reactor');
+              }
+            }}
             id="subnav-reactor"
           >
             <span>🔮</span> Magic Reactor
@@ -178,7 +211,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'aqueous' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('aqueous')}
+            onClick={() => {
+              if (chemistrySubTab !== 'aqueous') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('aqueous');
+              }
+            }}
             id="subnav-aqueous"
           >
             <span>💧</span> Color Titration
@@ -186,7 +226,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'validator' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('validator')}
+            onClick={() => {
+              if (chemistrySubTab !== 'validator') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('validator');
+              }
+            }}
             id="subnav-validator"
           >
             <span>⚖️</span> Equation Balancer
@@ -194,7 +241,14 @@ export const App: React.FC = () => {
           <button
             type="button"
             className={`subnav-pill ${chemistrySubTab === 'runs' ? 'active' : ''}`}
-            onClick={() => setChemistrySubTab('runs')}
+            onClick={() => {
+              if (chemistrySubTab !== 'runs') {
+                if ('speechSynthesis' in window) {
+                  window.speechSynthesis.cancel();
+                }
+                setChemistrySubTab('runs');
+              }
+            }}
             id="subnav-runs"
           >
             <span>📓</span> My Discoveries
@@ -237,6 +291,7 @@ export const App: React.FC = () => {
                 onSaveRun={(title, details, tag) => {
                   handleSaveRun(title, details, tag);
                 }}
+                onContextChange={handleExplainerContextChange}
               />
             )}
 

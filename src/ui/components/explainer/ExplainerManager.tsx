@@ -27,7 +27,8 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
   const [narration, setNarration] = useState(() => generateAutoNarration(activeContext));
 
   const debounceTimerRef = useRef<number | null>(null);
-  const lastSpokenRevisionRef = useRef<number | null>(null);
+  const lastSpokenTextRef = useRef<string>('');
+  const safetyTimeoutRef = useRef<number | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Check Ollama health periodically in background
@@ -39,7 +40,7 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
 
   // Autonomous Speech Narrator:
   // When ANY simulation changes on the platform, automatically produce the 2-line brief info
-  // and speak it aloud via voice synthesis!
+  // and speak it aloud via voice synthesis EXACTLY ONCE!
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -51,25 +52,51 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
       setNarration(newNarration);
       setShowCallout(true);
 
-      // Stop previous utterance
+      // CRITICAL: Speak ONLY ONCE per topic / simulation state!
+      // If this exact narration text was already spoken, do not repeat!
+      if (lastSpokenTextRef.current === newNarration.spokenText) {
+        return;
+      }
+
+      // Stop previous utterance immediately
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
 
-      // If voice mode is not muted and revision is fresh, speak the 2 lines!
+      // If voice mode is not muted, speak the 2 lines once!
       if (!isMuted && 'speechSynthesis' in window) {
-        lastSpokenRevisionRef.current = activeContext.stateRevision;
+        lastSpokenTextRef.current = newNarration.spokenText;
 
         const utterance = new SpeechSynthesisUtterance(newNarration.spokenText);
         utterance.rate = 1.05;
         utterance.pitch = 1.05;
 
+        const handleSpeechDone = () => {
+          setIsSpeaking(false);
+          if (safetyTimeoutRef.current) {
+            clearTimeout(safetyTimeoutRef.current);
+            safetyTimeoutRef.current = null;
+          }
+        };
+
         utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onend = handleSpeechDone;
+        utterance.onerror = handleSpeechDone;
 
         currentUtteranceRef.current = utterance;
         window.speechSynthesis.speak(utterance);
+
+        // Safety fallback timer:
+        // Chromium on Windows has a known issue where `utterance.onend` is occasionally dropped.
+        // Guarantee isSpeaking turns off so the bubble stops wobbling after speech finishes!
+        const estimatedDurationMs = Math.max(3500, Math.ceil((newNarration.spokenText.length / 10) * 1000) + 2500);
+        safetyTimeoutRef.current = window.setTimeout(() => {
+          setIsSpeaking(false);
+        }, estimatedDurationMs);
       }
     }, 450);
 
@@ -81,6 +108,7 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
   // Clean up speech on unmount
   useEffect(() => {
     return () => {
+      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -99,8 +127,9 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
     if (nextMuted && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
+      if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
     } else if (!nextMuted && narration) {
-      // Speak current 2 lines if unmuting
+      // Speak current 2 lines if unmuting explicitly
       handleReplaySpeech();
     }
   };
@@ -108,18 +137,35 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
   const handleReplaySpeech = () => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
+    if (safetyTimeoutRef.current) clearTimeout(safetyTimeoutRef.current);
+
+    // Explicit user action: allow speaking on manual replay
+    lastSpokenTextRef.current = narration.spokenText;
 
     const utterance = new SpeechSynthesisUtterance(narration.spokenText);
     utterance.rate = 1.05;
     utterance.pitch = 1.05;
 
+    const handleSpeechDone = () => {
+      setIsSpeaking(false);
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+    };
+
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onend = handleSpeechDone;
+    utterance.onerror = handleSpeechDone;
 
     currentUtteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setShowCallout(true);
+
+    const estimatedDurationMs = Math.max(3500, Math.ceil((narration.spokenText.length / 10) * 1000) + 2500);
+    safetyTimeoutRef.current = window.setTimeout(() => {
+      setIsSpeaking(false);
+    }, estimatedDurationMs);
   };
 
   return (
