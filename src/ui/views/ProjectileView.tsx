@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ProjectileExperiment, ProjectileParameters } from '../../core/experiment/types';
 import {
   runProjectileSimulation,
@@ -21,7 +21,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
   const [title, setTitle] = useState<string>('45° Launch at 20 m/s (Earth)');
   const [description, setDescription] = useState<string>('Idealized parabolic trajectory baseline');
 
-  // Active experiment state
+  // Active experiment state initialized with default run
   const [experiment, setExperiment] = useState<ProjectileExperiment>(() => {
     const initialParams: ProjectileParameters = {
       initialSpeed: 20,
@@ -44,6 +44,35 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
 
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // REAL-TIME SYNCHRONIZATION:
+  // Whenever initialSpeed, angleDeg, or gravity changes (via slider or buttons),
+  // immediately recompute the physics simulation and update the diagram & metrics!
+  useEffect(() => {
+    const params: ProjectileParameters = {
+      initialSpeed,
+      angleDeg,
+      gravity,
+    };
+
+    const validation = validateProjectileParameters(params);
+    if (!validation.valid) {
+      setValidationError(validation.errors.join(', '));
+      return;
+    }
+    setValidationError(null);
+
+    try {
+      const results = runProjectileSimulation(params);
+      setExperiment((prev) => ({
+        ...prev,
+        parameters: params,
+        results,
+      }));
+    } catch (err: unknown) {
+      setValidationError(err instanceof Error ? err.message : 'Simulation computation failed');
+    }
+  }, [initialSpeed, angleDeg, gravity]);
 
   const handlePresetSelect = (name: 'Earth' | 'Moon' | 'Mars') => {
     const val = GRAVITY_PRESETS[name];
@@ -118,6 +147,9 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
     URL.revokeObjectURL(url);
   };
 
+  // Complementary angle partner (e.g. 30° -> 60°, 15° -> 75°)
+  const complementaryAngle = 90 - angleDeg;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Metrics Summary Strip */}
@@ -153,7 +185,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
         </div>
       </div>
 
-      {/* Trajectory Canvas */}
+      {/* Trajectory Canvas with Dynamic Scaling & Angle Visibility */}
       <TrajectoryChart
         results={experiment.results}
         v0={experiment.parameters.initialSpeed}
@@ -161,36 +193,70 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
         gravity={experiment.parameters.gravity}
       />
 
+      {/* Educational Insight Banner on Angle Physics */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1.5px solid var(--wood-frame)',
+          borderRadius: 10,
+        }}
+      >
+        <div style={{ fontSize: 24 }}>💡</div>
+        <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text-primary)' }}>
+          <strong>Physics Discovery:</strong> Launching at <strong>{angleDeg}°</strong> gives a range of <strong>{experiment.results.range.toFixed(1)}m</strong>.
+          {angleDeg === 45 ? (
+            <span> 🏆 <strong>45° provides the absolute maximum range possible</strong> because sin(2 × 45°) = sin(90°) = 1!</span>
+          ) : angleDeg === 90 ? (
+            <span> 🚀 <strong>90° sends the rocket straight up to its highest possible altitude ({experiment.results.maxHeight.toFixed(1)}m)</strong> with zero horizontal flight distance.</span>
+          ) : angleDeg === 0 ? (
+            <span> 📐 <strong>0° is flat along the ground</strong> with no vertical lift or airtime.</span>
+          ) : (
+            <span> Did you know? Its complementary angle <strong>{complementaryAngle}°</strong> (90° − {angleDeg}°) achieves the <em>exact same horizontal landing distance</em>, but with a different flight arc!</span>
+          )}
+        </div>
+      </div>
+
       {/* Controls & Details Form Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
         {/* Parameters Form Panel */}
         <div className="glass-panel" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 18, marginBottom: 16 }}>Launch Parameters</h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Speed v0 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Launch Angle (θ) */}
             <div className="form-group">
-              <div className="form-label">
-                <span>Initial Velocity (v₀)</span>
-                <strong style={{ color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>{initialSpeed} m/s</strong>
+              <div className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700 }}>Launch Angle (θ)</span>
+                <strong style={{ color: '#fcd34d', fontFamily: 'var(--font-mono)', fontSize: 16 }}>{angleDeg}°</strong>
               </div>
-              <input
-                type="range"
-                id="speed-slider"
-                min="1"
-                max="100"
-                value={initialSpeed}
-                onChange={(e) => setInitialSpeed(parseFloat(e.target.value))}
-                style={{ width: '100%', accentColor: '#38bdf8' }}
-              />
-            </div>
 
-            {/* Angle Theta */}
-            <div className="form-group">
-              <div className="form-label">
-                <span>Launch Angle (θ)</span>
-                <strong style={{ color: '#fcd34d', fontFamily: 'var(--font-mono)' }}>{angleDeg}°</strong>
+              {/* Quick Angle Presets */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '8px 0' }}>
+                {[
+                  { deg: 15, label: '15° Shallow' },
+                  { deg: 30, label: '30° Medium' },
+                  { deg: 45, label: '45° Max Range 🏆' },
+                  { deg: 60, label: '60° High Lob' },
+                  { deg: 75, label: '75° Steep' },
+                  { deg: 90, label: '90° Vertical' },
+                ].map(({ deg, label }) => (
+                  <button
+                    key={deg}
+                    type="button"
+                    className={`btn ${angleDeg === deg ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '4px 8px', fontSize: '11px', flex: 1, minWidth: '70px' }}
+                    onClick={() => setAngleDeg(deg)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
+
               <input
                 type="range"
                 id="angle-slider"
@@ -200,21 +266,64 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
                 onChange={(e) => setAngleDeg(parseFloat(e.target.value))}
                 style={{ width: '100%', accentColor: '#f59e0b' }}
               />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                <span>0° (Ground Flat)</span>
+                <span>45° (Max Range)</span>
+                <span>90° (Straight Up)</span>
+              </div>
+            </div>
+
+            {/* Speed v0 */}
+            <div className="form-group">
+              <div className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700 }}>Initial Velocity (v₀)</span>
+                <strong style={{ color: '#38bdf8', fontFamily: 'var(--font-mono)', fontSize: 16 }}>{initialSpeed} m/s</strong>
+              </div>
+
+              {/* Quick Speed Presets */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                {[10, 20, 35, 50].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`btn ${initialSpeed === s ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '4px 8px', fontSize: '11px', flex: 1 }}
+                    onClick={() => setInitialSpeed(s)}
+                  >
+                    {s} m/s
+                  </button>
+                ))}
+              </div>
+
+              <input
+                type="range"
+                id="speed-slider"
+                min="1"
+                max="100"
+                value={initialSpeed}
+                onChange={(e) => setInitialSpeed(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#38bdf8' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                <span>1 m/s (Toss)</span>
+                <span>50 m/s (Rocket)</span>
+                <span>100 m/s (Sonic)</span>
+              </div>
             </div>
 
             {/* Gravity & Presets */}
             <div className="form-group">
-              <div className="form-label">
-                <span>Gravitational Acceleration (g)</span>
-                <strong style={{ color: '#34d399', fontFamily: 'var(--font-mono)' }}>{gravity.toFixed(2)} m/s²</strong>
+              <div className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700 }}>Gravitational Acceleration (g)</span>
+                <strong style={{ color: '#34d399', fontFamily: 'var(--font-mono)', fontSize: 16 }}>{gravity.toFixed(2)} m/s²</strong>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                 {(['Earth', 'Moon', 'Mars'] as const).map((name) => (
                   <button
                     key={name}
                     type="button"
                     className={`btn ${activePreset === name ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ padding: '6px 12px', fontSize: '12px', flex: 1 }}
+                    style={{ padding: '6px 10px', fontSize: '12px', flex: 1 }}
                     onClick={() => handlePresetSelect(name)}
                   >
                     {name} ({GRAVITY_PRESETS[name]}m/s²)
@@ -235,7 +344,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
 
             {/* Title */}
             <div className="form-group">
-              <label className="form-label">Experiment Title</label>
+              <label className="form-label" style={{ fontWeight: 700 }}>Experiment Title</label>
               <input
                 type="text"
                 id="projectile-title-input"
@@ -259,7 +368,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
               style={{ padding: '12px 20px', fontSize: 15 }}
               onClick={handleRun}
             >
-              🚀 Compute Trajectory
+              🚀 Fire Rocket / Replay Launch
             </button>
           </div>
         </div>
@@ -278,17 +387,17 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
                 <code style={{ color: '#a5b4fc', fontSize: 12 }}>{experiment.id}</code>
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>Formulas: </span>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#94a3b8', marginTop: 4, lineHeight: 1.6 }}>
-                  <div>R = v₀²·sin(2θ) / g</div>
-                  <div>T = 2·v₀·sin(θ) / g</div>
-                  <div>H = (v₀·sin(θ))² / (2g)</div>
+                <span style={{ color: 'var(--text-muted)' }}>Governing Formulas: </span>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#94a3b8', marginTop: 4, lineHeight: 1.7 }}>
+                  <div>Horizontal Range: R = v₀² · sin(2θ) / g</div>
+                  <div>Flight Duration: T = 2 · v₀ · sin(θ) / g</div>
+                  <div>Maximum Altitude: H = (v₀ · sin(θ))² / (2g)</div>
                 </div>
               </div>
             </div>
 
             <div style={{ marginTop: 20 }}>
-              <label className="form-label" style={{ marginBottom: 6 }}>Notes / Observations</label>
+              <label className="form-label" style={{ marginBottom: 6, fontWeight: 700 }}>Notes / Observations</label>
               <textarea
                 className="form-input"
                 rows={3}
