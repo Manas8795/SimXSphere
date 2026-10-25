@@ -9,6 +9,11 @@ interface ExplainerManagerProps {
   priorContext?: SimulationExplainerContext | null;
 }
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContext }) => {
   // Voice Mute Preference saved in localStorage
   const [isMuted, setIsMuted] = useState<boolean>(() => {
@@ -22,6 +27,109 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const [showCallout, setShowCallout] = useState<boolean>(true);
   const [status, setStatus] = useState<RuntimeConnectionStatus>('idle');
+
+  // Draggable Bubble Position (persisted to localStorage)
+  const [position, setPosition] = useState<Position>(() => {
+    try {
+      const saved = localStorage.getItem('simxsphere_bubble_position');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+          const maxX = typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 70) : 1200;
+          const maxY = typeof window !== 'undefined' ? Math.max(10, window.innerHeight - 70) : 800;
+          return {
+            x: Math.min(Math.max(10, parsed.x), maxX),
+            y: Math.min(Math.max(10, parsed.y), maxY),
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+    const defaultX = typeof window !== 'undefined' ? Math.max(10, window.innerWidth - 180) : 1000;
+    return { x: defaultX, y: 14 };
+  });
+
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{
+    startX: number;
+    startY: number;
+    initialPosX: number;
+    initialPosY: number;
+    hasMoved: boolean;
+  } | null>(null);
+
+  // Keep bubble within viewport on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => ({
+        x: Math.min(prev.x, Math.max(10, window.innerWidth - 70)),
+        y: Math.min(prev.y, Math.max(10, window.innerHeight - 70)),
+      }));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Pointer drag handlers: enables dragging the science bubble anywhere on screen
+  const handleBubblePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return; // Only primary mouse button or touch
+
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialPosX: position.x,
+      initialPosY: position.y,
+      hasMoved: false,
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (!dragStartRef.current) return;
+      const dx = moveEvent.clientX - dragStartRef.current.startX;
+      const dy = moveEvent.clientY - dragStartRef.current.startY;
+
+      if (!dragStartRef.current.hasMoved && Math.hypot(dx, dy) > 4) {
+        dragStartRef.current.hasMoved = true;
+        setIsDragging(true);
+      }
+
+      if (dragStartRef.current.hasMoved) {
+        const maxX = Math.max(10, window.innerWidth - 70);
+        const maxY = Math.max(10, window.innerHeight - 70);
+        const newX = Math.min(Math.max(10, dragStartRef.current.initialPosX + dx), maxX);
+        const newY = Math.min(Math.max(10, dragStartRef.current.initialPosY + dy), maxY);
+        setPosition({ x: newX, y: newY });
+      }
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+
+      if (dragStartRef.current?.hasMoved) {
+        setIsDragging(false);
+        try {
+          setPosition((latest) => {
+            localStorage.setItem('simxsphere_bubble_position', JSON.stringify(latest));
+            return latest;
+          });
+        } catch {
+          // ignore
+        }
+      }
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+  };
+
+  const handleToggleCallout = () => {
+    if (dragStartRef.current?.hasMoved) return;
+    setShowCallout((prev) => !prev);
+  };
 
   // Active 2-line brief explanation state
   const [narration, setNarration] = useState(() => generateAutoNarration(activeContext));
@@ -168,22 +276,58 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
     }, estimatedDurationMs);
   };
 
+  // Dynamic Callout Positioning (follows the dragged bubble smoothly)
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const calloutWidth = Math.min(360, windowWidth - 24);
+
+  // If bubble is placed in the bottom 250px of the screen, flip callout ABOVE bubble
+  const isNearBottom = position.y + 60 + 220 > windowHeight;
+  const calloutPlacement: 'top' | 'bottom' = isNearBottom ? 'top' : 'bottom';
+  const calloutY = isNearBottom ? Math.max(12, position.y - 195) : position.y + 64;
+
+  // Horizontal alignment: anchor to bubble, clamp inside viewport
+  const rawCalloutX =
+    position.x + 360 > windowWidth - 12 ? position.x + 52 - calloutWidth : position.x - 10;
+  const calloutX = Math.max(12, Math.min(rawCalloutX, windowWidth - calloutWidth - 12));
+
+  // Pointer arrow aligns with bubble center
+  const bubbleCenterX = position.x + 26;
+  const arrowOffset = Math.max(16, Math.min(calloutWidth - 28, bubbleCenterX - calloutX - 7));
+
   return (
     <>
-      {/* Iridescent Glass Science Bubble in top right corner (moves when speaking!) */}
+      {/* Iridescent Glass Science Bubble (Draggable anywhere on screen!) */}
       <ExplainerBubble
         isOpen={showCallout}
-        onToggle={() => setShowCallout((prev) => !prev)}
+        onToggle={handleToggleCallout}
         status={status}
         isSpeaking={isSpeaking}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         simulationTitle={activeContext.simulationTitle}
+        isDragging={isDragging}
+        positionStyle={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+        }}
+        onBubblePointerDown={handleBubblePointerDown}
       />
 
-      {/* Autonomous 2-Line Voice Callout Speech Bubble (anchored beneath the bubble) */}
+      {/* Autonomous 2-Line Voice Callout Speech Bubble (anchored relative to the dragged bubble) */}
       {showCallout && (
-        <div className="bubble-speech-callout" id="bubble-speech-callout" role="status" aria-live="polite">
+        <div
+          className={`bubble-speech-callout arrow-${calloutPlacement}`}
+          id="bubble-speech-callout"
+          role="status"
+          aria-live="polite"
+          style={{
+            left: `${calloutX}px`,
+            top: `${calloutY}px`,
+            width: `${calloutWidth}px`,
+            ['--arrow-left' as any]: `${arrowOffset}px`,
+          }}
+        >
           {/* Header */}
           <div className="callout-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

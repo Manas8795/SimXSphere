@@ -9,6 +9,9 @@ interface ExplainerBubbleProps {
   isMuted: boolean;
   onToggleMute: () => void;
   simulationTitle: string;
+  isDragging?: boolean;
+  positionStyle?: React.CSSProperties;
+  onBubblePointerDown?: (e: React.PointerEvent) => void;
 }
 
 export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
@@ -19,9 +22,16 @@ export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
   isMuted,
   onToggleMute,
   simulationTitle,
+  isDragging = false,
+  positionStyle,
+  onBubblePointerDown,
 }) => {
   return (
-    <div className="explainer-bubble-anchor" id="explainer-bubble-anchor">
+    <div
+      className={`explainer-bubble-anchor ${isDragging ? 'is-dragging' : ''}`}
+      id="explainer-bubble-anchor"
+      style={positionStyle}
+    >
       {/* Soundwaves indicator when speaking */}
       {isSpeaking && (
         <div className="companion-soundwaves" title="Science Bubble is speaking live audio">
@@ -32,21 +42,22 @@ export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
         </div>
       )}
 
-      {/* Iridescent Glass Science Bubble Sphere */}
+      {/* Iridescent Glass Science Bubble Sphere (Draggable anywhere on screen!) */}
       <button
         type="button"
         id="science-bubble-btn"
-        className={`science-bubble-sphere ${isSpeaking ? 'is-speaking' : ''}`}
+        className={`science-bubble-sphere ${isSpeaking ? 'is-speaking' : ''} ${isDragging ? 'is-dragging' : ''}`}
         onClick={onToggle}
-        title={`Science Bubble (Active Voice Narrator) — ${isMuted ? 'Muted' : 'Voice ON'} • ${simulationTitle}`}
-        aria-label="Science Bubble Simulation Narrator"
+        onPointerDown={onBubblePointerDown}
+        title={`🫧 Science Bubble (Drag anywhere • Click to view notes) — ${isMuted ? 'Muted' : 'Voice ON'} • ${simulationTitle}`}
+        aria-label="Science Bubble Simulation Narrator — Drag anywhere on screen"
         aria-expanded={isOpen}
       >
         {/* Inner floating shimmer */}
         <div className="bubble-inner-shimmer" />
 
         {/* Center icon: small sound speaker or wave indicator */}
-        <span style={{ fontSize: 18, zIndex: 1 }}>
+        <span style={{ fontSize: 18, zIndex: 1, pointerEvents: 'none' }}>
           {isMuted ? '🔇' : isSpeaking ? '🫧' : '🫧'}
         </span>
 
@@ -75,8 +86,15 @@ export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
           borderRadius: 14,
           background: 'var(--lab-surface)',
           border: '1.5px solid var(--wood-frame)',
+          cursor: 'pointer',
         }}
-        onClick={onToggleMute}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleMute();
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
         title={isMuted ? 'Unmute voice narrator' : 'Mute voice narrator'}
       >
         {isMuted ? '🔇 Muted' : '🔊 Voice'}
