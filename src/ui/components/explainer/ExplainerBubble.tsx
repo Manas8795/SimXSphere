@@ -5,8 +5,9 @@ interface ExplainerBubbleProps {
   isOpen: boolean;
   onToggle: () => void;
   status: RuntimeConnectionStatus;
-  isGenerating: boolean;
-  isSpeakingAudio: boolean;
+  isSpeaking: boolean;
+  isMuted: boolean;
+  onToggleMute: () => void;
   simulationTitle: string;
 }
 
@@ -14,18 +15,16 @@ export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
   isOpen,
   onToggle,
   status,
-  isGenerating,
-  isSpeakingAudio,
+  isSpeaking,
+  isMuted,
+  onToggleMute,
   simulationTitle,
 }) => {
-  // It moves when it speaks: either when actively generating an explanation or when reading voice narration!
-  const isSpeaking = isGenerating || isSpeakingAudio;
-
   return (
     <div className="explainer-bubble-anchor" id="explainer-bubble-anchor">
       {/* Soundwaves indicator when speaking */}
       {isSpeaking && (
-        <div className="companion-soundwaves" title="Science Companion is speaking">
+        <div className="companion-soundwaves" title="Science Bubble is speaking live audio">
           <div className="companion-soundwave-bar" />
           <div className="companion-soundwave-bar" />
           <div className="companion-soundwave-bar" />
@@ -33,35 +32,54 @@ export const ExplainerBubble: React.FC<ExplainerBubbleProps> = ({
         </div>
       )}
 
-      {/* Circular floating companion bubble button */}
+      {/* Iridescent Glass Science Bubble Sphere */}
       <button
         type="button"
-        id="explainer-bubble-btn"
-        className={`explainer-bubble-btn ${isSpeaking ? 'is-speaking' : ''}`}
+        id="science-bubble-btn"
+        className={`science-bubble-sphere ${isSpeaking ? 'is-speaking' : ''}`}
         onClick={onToggle}
-        title={
-          isSpeaking
-            ? 'Science Companion is explaining...'
-            : `Science Companion (Local AI Explainer) — Active: ${simulationTitle}`
-        }
-        aria-label="Toggle Science Companion Explainer"
+        title={`Science Bubble (Active Voice Narrator) — ${isMuted ? 'Muted' : 'Voice ON'} • ${simulationTitle}`}
+        aria-label="Science Bubble Simulation Narrator"
         aria-expanded={isOpen}
       >
-        <div className="explainer-bubble-avatar">
-          {isSpeakingAudio ? '🗣️' : isGenerating ? '🧠' : '🤖'}
-        </div>
+        {/* Inner floating shimmer */}
+        <div className="bubble-inner-shimmer" />
 
-        {/* Runtime Connection Status Dot */}
+        {/* Center icon: small sound speaker or wave indicator */}
+        <span style={{ fontSize: 18, zIndex: 1 }}>
+          {isMuted ? '🔇' : isSpeaking ? '🫧' : '🫧'}
+        </span>
+
+        {/* Runtime / Voice Status Indicator Dot */}
         <span
           className={`bubble-status-dot ${
-            isGenerating ? 'generating' : status === 'connected' ? 'online' : 'offline'
+            isSpeaking ? 'speaking' : status === 'connected' ? 'online' : 'offline'
           }`}
           title={
-            status === 'connected'
-              ? 'Local Ollama is Connected & Ready'
-              : 'Ollama is Offline (Click for setup instructions)'
+            isSpeaking
+              ? 'Speaking 2-line simulation info...'
+              : status === 'connected'
+              ? 'Local AI Voice Narrator Active'
+              : 'Voice Mode Active (Offline deterministic)'
           }
         />
+      </button>
+
+      {/* Quick Mute Toggle Pill right next to bubble */}
+      <button
+        type="button"
+        className="lab-btn lab-btn-secondary"
+        style={{
+          padding: '4px 8px',
+          fontSize: 11,
+          borderRadius: 14,
+          background: 'var(--lab-surface)',
+          border: '1.5px solid var(--wood-frame)',
+        }}
+        onClick={onToggleMute}
+        title={isMuted ? 'Unmute voice narrator' : 'Mute voice narrator'}
+      >
+        {isMuted ? '🔇 Muted' : '🔊 Voice'}
       </button>
     </div>
   );
