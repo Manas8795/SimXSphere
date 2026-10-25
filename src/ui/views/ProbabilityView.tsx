@@ -9,12 +9,15 @@ import { generateRandomSeed, createMulberry32 } from '../../core/simulations/prn
 import { Histogram } from '../components/Histogram';
 import { exportProbabilityCsv } from '../../core/simxpack/csv';
 import { serializeCanonicalJson } from '../../core/experiment/serialize';
+import { buildProbabilityExplainerContext } from '../../core/explainer/context-builders/probabilityContext';
+import type { SimulationExplainerContext } from '../../core/explainer/types';
 
 interface ProbabilityViewProps {
   onSaveExperiment: (experiment: ProbabilityExperiment) => void;
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
-export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperiment }) => {
+export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperiment, onContextChange }) => {
   const [kind, setKind] = useState<'coin' | 'die'>('coin');
   const [sides, setSides] = useState<number>(2);
   const [trials, setTrials] = useState<number>(1000);
@@ -53,6 +56,12 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
   const [execTimeMs, setExecTimeMs] = useState<number>(0);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Notify companion of active context
+  useEffect(() => {
+    const ctx = buildProbabilityExplainerContext(experiment.parameters, experiment.results, Date.now());
+    onContextChange?.(ctx);
+  }, [experiment, onContextChange]);
 
   // Stop live streaming on unmount
   useEffect(() => {

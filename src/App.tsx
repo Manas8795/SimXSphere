@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar, type DisciplineTab, type ThemeMode } from './ui/components/Navbar';
 import { WorkplaneLab } from './components/WorkplaneLab';
 import { PeriodicTable } from './components/PeriodicTable';
@@ -9,6 +9,9 @@ import { PERIODIC_TABLE, type ChemicalElement } from './chemistry-data/elements'
 
 import { ProbabilityView } from './ui/views/ProbabilityView';
 import { ProjectileView } from './ui/views/ProjectileView';
+import { ExplainerManager } from './ui/components/explainer/ExplainerManager';
+import { buildProjectileExplainerContext } from './core/explainer/context-builders/projectileContext';
+import type { SimulationExplainerContext } from './core/explainer/types';
 
 export interface SavedExperimentRun {
   id: string;
@@ -26,6 +29,26 @@ export const App: React.FC = () => {
   // Secondary sub-navigation within Chemistry
   const [chemistrySubTab, setChemistrySubTab] = useState<ChemistrySubTab>('workplane');
   const [selectedElement, setSelectedElement] = useState<ChemicalElement | null>(() => PERIODIC_TABLE[0]); // Hydrogen default
+
+  // Explainer Context State: tracks current and previous simulation snapshots for local AI explanations
+  const [activeExplainerContext, setActiveExplainerContext] = useState<SimulationExplainerContext>(() =>
+    buildProjectileExplainerContext(
+      { initialSpeed: 20, angleDeg: 45, gravity: 9.81 },
+      { range: 40.775, flightTime: 2.883, maxHeight: 10.194, trajectory: [] },
+      1
+    )
+  );
+  const [priorExplainerContext, setPriorExplainerContext] = useState<SimulationExplainerContext | null>(null);
+
+  const handleExplainerContextChange = useCallback((newCtx: SimulationExplainerContext) => {
+    setActiveExplainerContext((currentActive) => {
+      // Keep previous snapshot if revision changed
+      if (currentActive && currentActive.stateRevision !== newCtx.stateRevision) {
+        setPriorExplainerContext(currentActive);
+      }
+      return newCtx;
+    });
+  }, []);
 
   // Themes: chalkboard (classroom dark green) | scientist-dark (slate & cyan) | scientist-light (academic paper)
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -243,6 +266,7 @@ export const App: React.FC = () => {
                 onSaveExperiment={(exp) => {
                   handleSaveRun(exp.title, exp.description || '', 'Aqueous');
                 }}
+                onContextChange={handleExplainerContextChange}
               />
             )}
 
@@ -361,6 +385,7 @@ export const App: React.FC = () => {
                 'Probability'
               );
             }}
+            onContextChange={handleExplainerContextChange}
           />
         )}
 
@@ -376,9 +401,16 @@ export const App: React.FC = () => {
                 'Physics'
               );
             }}
+            onContextChange={handleExplainerContextChange}
           />
         )}
       </main>
+
+      {/* Floating Science Companion in top right corner (moves when speaking) */}
+      <ExplainerManager
+        activeContext={activeExplainerContext}
+        priorContext={priorExplainerContext}
+      />
     </div>
   );
 };

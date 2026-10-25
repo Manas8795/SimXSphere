@@ -8,12 +8,15 @@ import {
 import { TrajectoryChart } from '../components/TrajectoryChart';
 import { exportProjectileCsv } from '../../core/simxpack/csv';
 import { serializeCanonicalJson } from '../../core/experiment/serialize';
+import { buildProjectileExplainerContext } from '../../core/explainer/context-builders/projectileContext';
+import type { SimulationExplainerContext } from '../../core/explainer/types';
 
 interface ProjectileViewProps {
   onSaveExperiment: (experiment: ProjectileExperiment) => void;
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
-export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment }) => {
+export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment, onContextChange }) => {
   const [initialSpeed, setInitialSpeed] = useState<number>(20);
   const [angleDeg, setAngleDeg] = useState<number>(45);
   const [gravity, setGravity] = useState<number>(9.81);
@@ -69,10 +72,14 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
         parameters: params,
         results,
       }));
+
+      // Notify science companion of active state snapshot
+      const ctx = buildProjectileExplainerContext(params, results, Date.now());
+      onContextChange?.(ctx);
     } catch (err: unknown) {
       setValidationError(err instanceof Error ? err.message : 'Simulation computation failed');
     }
-  }, [initialSpeed, angleDeg, gravity]);
+  }, [initialSpeed, angleDeg, gravity, onContextChange]);
 
   const handlePresetSelect = (name: 'Earth' | 'Moon' | 'Mars') => {
     const val = GRAVITY_PRESETS[name];

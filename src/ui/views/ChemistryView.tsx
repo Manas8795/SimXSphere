@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   REAGENTS_DATABASE,
   simulateChemicalMixing,
   type ReactionOutput,
 } from '../../core/simulations/chemistry';
-import type { ChemistryExperiment } from '../../core/experiment/types';
+import type { ChemistryExperiment, ChemistryParameters, ChemistryResults } from '../../core/experiment/types';
+import { buildChemistryExplainerContext } from '../../core/explainer/context-builders/chemistryContext';
+import type { SimulationExplainerContext } from '../../core/explainer/types';
 
 interface ChemistryViewProps {
   onSaveExperiment: (exp: ChemistryExperiment) => void;
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
-export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }) => {
+export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, onContextChange }) => {
   const [reagentAId, setReagentAId] = useState<string>('hcl');
   const [volumeAMl, setVolumeAMl] = useState<number>(50);
   const [concAM, setConcAM] = useState<number>(1.0);
@@ -28,6 +31,32 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment }
 
   const reagentA = REAGENTS_DATABASE.find((r) => r.id === reagentAId) || REAGENTS_DATABASE[0];
   const reagentB = REAGENTS_DATABASE.find((r) => r.id === reagentBId) || REAGENTS_DATABASE[1];
+
+  // Notify companion of active context
+  useEffect(() => {
+    const params: ChemistryParameters = {
+      mode: 'aqueous',
+      reactants: [
+        { formula: reagentA.formula, name: reagentA.name, volumeMl: volumeAMl, concentrationM: concAM },
+        { formula: reagentB.formula, name: reagentB.name, volumeMl: volumeBMl, concentrationM: concBM },
+      ],
+    };
+    const results: ChemistryResults = {
+      reactionType: reactionResult.reactionType,
+      balancedEquation: reactionResult.balancedEquation,
+      products: reactionResult.ionicSpecies || [],
+      isConserved: true,
+      finalPh: reactionResult.finalPh,
+      temperatureChangeC: reactionResult.temperatureChangeC,
+      precipitate: reactionResult.precipitateFormed,
+      gasEvolved: reactionResult.gasEvolved,
+      enthalpyKj: reactionResult.temperatureChangeC > 0 ? -57.1 : 0,
+      isCurated: true,
+      provenance: 'SimXSphere Aqueous Engine',
+    };
+    const ctx = buildChemistryExplainerContext(params, results, Date.now());
+    onContextChange?.(ctx);
+  }, [reactionResult, reagentA, reagentB, volumeAMl, concAM, volumeBMl, concBM, onContextChange]);
 
   const handleMixReaction = () => {
     setIsReacting(true);
