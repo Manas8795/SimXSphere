@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ProjectileExperiment, ProjectileParameters } from '../../core/experiment/types';
 import {
   runProjectileSimulation,
@@ -10,76 +10,92 @@ import { exportProjectileCsv } from '../../core/simxpack/csv';
 import { serializeCanonicalJson } from '../../core/experiment/serialize';
 import { buildProjectileExplainerContext } from '../../core/explainer/context-builders/projectileContext';
 import type { SimulationExplainerContext } from '../../core/explainer/types';
+import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
+import { ShareDialog } from '../components/sharing/ShareDialog';
 
 interface ProjectileViewProps {
   onSaveExperiment: (experiment: ProjectileExperiment) => void;
   onContextChange?: (context: SimulationExplainerContext) => void;
+  restoredExperiment?: ProjectileExperiment | null;
 }
 
-export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment, onContextChange }) => {
+export const ProjectileView: React.FC<ProjectileViewProps> = ({
+  onSaveExperiment,
+  onContextChange,
+  restoredExperiment,
+}) => {
   const [initialSpeed, setInitialSpeed] = useState<number>(20);
   const [angleDeg, setAngleDeg] = useState<number>(45);
   const [gravity, setGravity] = useState<number>(9.81);
   const [activePreset, setActivePreset] = useState<string>('Earth');
   const [title, setTitle] = useState<string>('45° Launch at 20 m/s (Earth)');
   const [description, setDescription] = useState<string>('Idealized parabolic trajectory baseline');
+  const [expMeta, setExpMeta] = useState<{ id: string; createdAt: string }>(() => ({
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  }));
 
-  // Active experiment state initialized with default run
-  const [experiment, setExperiment] = useState<ProjectileExperiment>(() => {
-    const initialParams: ProjectileParameters = {
-      initialSpeed: 20,
-      angleDeg: 45,
-      gravity: 9.81,
-    };
-    const results = runProjectileSimulation(initialParams);
-    return {
-      schemaVersion: 1,
-      id: crypto.randomUUID(),
-      type: 'projectile',
-      title: '45° Launch at 20 m/s (Earth)',
-      description: 'Idealized parabolic trajectory baseline',
-      createdAt: new Date().toISOString(),
-      appVersion: '1.0.0',
-      parameters: initialParams,
-      results,
-    };
-  });
+  // Restore experiment when restoredExperiment prop changes
+  useEffect(() => {
+    if (restoredExperiment && restoredExperiment.type === 'projectile') {
+      queueMicrotask(() => {
+        setExpMeta({
+          id: restoredExperiment.id,
+          createdAt: restoredExperiment.createdAt,
+        });
+        setInitialSpeed(restoredExperiment.parameters.initialSpeed);
+        setAngleDeg(restoredExperiment.parameters.angleDeg);
+        setGravity(restoredExperiment.parameters.gravity);
+        setTitle(restoredExperiment.title);
+        setDescription(restoredExperiment.description || '');
+        if (restoredExperiment.parameters.gravity === 9.81) setActivePreset('Earth');
+        else if (restoredExperiment.parameters.gravity === 1.62) setActivePreset('Moon');
+        else if (restoredExperiment.parameters.gravity === 3.72) setActivePreset('Mars');
+        else setActivePreset('Custom');
+      });
+    }
+  }, [restoredExperiment]);
 
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [shareExperiment, setShareExperiment] = useState<ProjectileExperiment | null>(null);
 
-  // REAL-TIME SYNCHRONIZATION:
-  // Whenever initialSpeed, angleDeg, or gravity changes (via slider or buttons),
-  // immediately recompute the physics simulation and update the diagram & metrics!
-  useEffect(() => {
-    const params: ProjectileParameters = {
-      initialSpeed,
-      angleDeg,
-      gravity,
-    };
+  const currentParams: ProjectileParameters = useMemo(() => ({
+    initialSpeed,
+    angleDeg,
+    gravity,
+  }), [initialSpeed, angleDeg, gravity]);
 
-    const validation = validateProjectileParameters(params);
-    if (!validation.valid) {
-      setValidationError(validation.errors.join(', '));
-      return;
-    }
-    setValidationError(null);
+  const validation = useMemo(() => validateProjectileParameters(currentParams), [currentParams]);
+  const validationError = validation.valid ? null : validation.errors.join(', ');
 
+  const currentResults = useMemo(() => {
+    if (!validation.valid) return { range: 0, flightTime: 0, maxHeight: 0, trajectory: [] };
     try {
-      const results = runProjectileSimulation(params);
-      setExperiment((prev) => ({
-        ...prev,
-        parameters: params,
-        results,
-      }));
-
-      // Notify science companion of active state snapshot
-      const ctx = buildProjectileExplainerContext(params, results, Date.now());
-      onContextChange?.(ctx);
-    } catch (err: unknown) {
-      setValidationError(err instanceof Error ? err.message : 'Simulation computation failed');
+      return runProjectileSimulation(currentParams);
+    } catch {
+      return { range: 0, flightTime: 0, maxHeight: 0, trajectory: [] };
     }
-  }, [initialSpeed, angleDeg, gravity, onContextChange]);
+  }, [currentParams, validation.valid]);
+
+  const experiment: ProjectileExperiment = useMemo(() => ({
+    schemaVersion: 1,
+    id: expMeta.id,
+    type: 'projectile',
+    title: title.trim() || `Projectile: ${initialSpeed}m/s at ${angleDeg}°`,
+    description: description.trim(),
+    createdAt: expMeta.createdAt,
+    appVersion: '1.0.0',
+    parameters: currentParams,
+    results: currentResults,
+  }), [currentParams, currentResults, title, description, initialSpeed, angleDeg, expMeta]);
+
+  // Notify companion of active context
+  useEffect(() => {
+    if (validation.valid && currentResults.trajectory.length > 0) {
+      const ctx = buildProjectileExplainerContext(currentParams, currentResults, Date.now());
+      onContextChange?.(ctx);
+    }
+  }, [currentParams, currentResults, validation.valid, onContextChange]);
 
   const handlePresetSelect = (name: 'Earth' | 'Moon' | 'Mars') => {
     const val = GRAVITY_PRESETS[name];
@@ -95,34 +111,10 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
   };
 
   const handleRun = () => {
-    const params: ProjectileParameters = {
-      initialSpeed,
-      angleDeg,
-      gravity,
-    };
-
-    const validation = validateProjectileParameters(params);
-    if (!validation.valid) {
-      setValidationError(validation.errors.join(', '));
-      return;
-    }
-    setValidationError(null);
-
-    const results = runProjectileSimulation(params);
-
-    const newExp: ProjectileExperiment = {
-      schemaVersion: 1,
+    setExpMeta({
       id: crypto.randomUUID(),
-      type: 'projectile',
-      title: title.trim() || `Projectile: ${initialSpeed}m/s at ${angleDeg}°`,
-      description: description.trim(),
       createdAt: new Date().toISOString(),
-      appVersion: '1.0.0',
-      parameters: params,
-      results,
-    };
-
-    setExperiment(newExp);
+    });
     setSaveSuccess(false);
   };
 
@@ -152,6 +144,15 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
     a.download = `experiment-${experiment.id.slice(0, 8)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportSimXPack = async () => {
+    const { filename, jsonString } = await createSingleSimXPackage(experiment);
+    triggerFileDownload(filename, jsonString);
+  };
+
+  const handleOpenShare = () => {
+    setShareExperiment(experiment);
   };
 
   // Complementary angle partner (e.g. 30° -> 60°, 15° -> 75°)
@@ -225,6 +226,35 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
           ) : (
             <span> Did you know? Its complementary angle <strong>{complementaryAngle}°</strong> (90° − {angleDeg}°) achieves the <em>exact same horizontal landing distance</em>, but with a different flight arc!</span>
           )}
+        </div>
+      </div>
+
+      {/* Explicit Physics Assumptions & Environmental Model */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: '14px 20px',
+          background: 'var(--lab-surface-subtle)',
+          border: '1.5px solid var(--wood-frame)',
+          borderRadius: 10,
+          fontSize: 12,
+          color: 'var(--text-secondary)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+        }}
+      >
+        <div style={{ fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          📐 Physics Assumptions & Boundary Conditions
+        </div>
+        <div>
+          • <strong>Flat Ground Model (y₀ = 0):</strong> Launch elevation strictly equals landing impact elevation.
+        </div>
+        <div>
+          • <strong>Vacuum Trajectory:</strong> Atmospheric drag, aerodynamic lift, wind vectors, and planetary Coriolis acceleration are neglected.
+        </div>
+        <div>
+          • <strong>Deterministic Reproducibility:</strong> Computed via closed-form analytical kinematics: x(t) = v₀·cos(θ)·t, y(t) = v₀·sin(θ)·t - ½·g·t².
         </div>
       </div>
 
@@ -428,6 +458,24 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
             </button>
             <button
               type="button"
+              id="export-projectile-simxpack-btn"
+              className="btn btn-secondary"
+              onClick={handleExportSimXPack}
+              title="Export as portable offline .simxpack file"
+            >
+              📦 Export .simxpack
+            </button>
+            <button
+              type="button"
+              id="share-projectile-btn"
+              className="btn btn-secondary"
+              onClick={handleOpenShare}
+              title="Share simulation package"
+            >
+              🔗 Share
+            </button>
+            <button
+              type="button"
               id="download-projectile-csv-btn"
               className="btn btn-secondary"
               onClick={handleDownloadCsv}
@@ -445,6 +493,13 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({ onSaveExperiment
           </div>
         </div>
       </div>
+
+      {shareExperiment && (
+        <ShareDialog
+          experiment={shareExperiment}
+          onClose={() => setShareExperiment(null)}
+        />
+      )}
     </div>
   );
 };

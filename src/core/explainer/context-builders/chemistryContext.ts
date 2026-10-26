@@ -1,5 +1,8 @@
 import type { ChemistryParameters, ChemistryResults } from '../../experiment/types';
 import { EXPLAINER_SCHEMA_VERSION, type SimulationExplainerContext } from '../types';
+import type { ChemicalElement } from '../../../chemistry-data/elements';
+import type { SynthesisResult } from '../../../chemistry-engine/compound-builder';
+import type { EquationValidationResult } from '../../../chemistry-engine/atom-counter';
 
 export function buildChemistryExplainerContext(
   params: ChemistryParameters,
@@ -208,4 +211,219 @@ export function buildWorkplaneExplainerContext(
     ],
   };
 }
+
+export function buildPeriodicTableExplainerContext(
+  element: ChemicalElement | null,
+  revision: number = 1
+): SimulationExplainerContext {
+  const knownFacts: string[] = [
+    'The Periodic Table organizes all 118 chemical elements in order of increasing atomic number (nuclear proton count).',
+    'Elements in the same column (group) share identical valence electron counts and exhibit similar chemical reactivity.',
+  ];
+
+  if (element) {
+    knownFacts.push(`Element: ${element.name} (${element.symbol}), Atomic Number: ${element.atomicNumber}.`);
+    knownFacts.push(`Standard Atomic Mass: ${element.atomicMass.toFixed(2)} u.`);
+    knownFacts.push(`Chemical Classification: ${element.category.replace(/-/g, ' ')}.`);
+    knownFacts.push(`Standard Phase of Matter at STP: ${element.standardState}.`);
+    if (element.commonValences && element.commonValences.length > 0) {
+      knownFacts.push(`Common Valence States: ${element.commonValences.join(', ')}.`);
+    }
+    if (element.electronConfiguration) {
+      knownFacts.push(`Electron Configuration: ${element.electronConfiguration}.`);
+    }
+  }
+
+  return {
+    schemaVersion: EXPLAINER_SCHEMA_VERSION,
+    simulationId: 'chemistry-table',
+    simulationTitle: element ? `Element: ${element.name} (${element.symbol})` : 'Periodic Table of Elements',
+    domain: 'chemistry',
+    stateRevision: revision,
+    timestamp: new Date().toISOString(),
+    inputs: {
+      selectedElement: element
+        ? {
+            name: element.name,
+            symbol: element.symbol,
+            atomicNumber: element.atomicNumber,
+            category: element.category,
+            atomicMass: element.atomicMass,
+            commonValences: element.commonValences,
+            electronConfiguration: element.electronConfiguration,
+            standardState: element.standardState,
+          }
+        : null,
+    },
+    outputs: {
+      elementName: element?.name,
+      symbol: element?.symbol,
+      atomicNumber: element?.atomicNumber,
+      category: element?.category,
+      atomicMass: element?.atomicMass,
+      commonValences: element?.commonValences,
+      electronConfiguration: element?.electronConfiguration,
+    },
+    assumptions: [
+      'Standard ambient temperature and pressure (25°C, 1 atm) for physical state designation.',
+      'Ground-state electron configurations according to Aufbau principle and Hund\'s rule.',
+    ],
+    knownFacts,
+    unavailableFacts: [
+      'Relativistic quantum orbital contractions for transactinide elements are simplified.',
+    ],
+    supportedIntents: [
+      'explain_current_state',
+      'why_did_this_happen',
+      'explain_equations',
+      'ask_question',
+    ],
+  };
+}
+
+export function buildSynthesisReactorExplainerContext(
+  slots: Array<{ symbol: string; ratio: number }>,
+  synthesisResult: SynthesisResult,
+  revision: number = 1
+): SimulationExplainerContext {
+  const isSynthesized = !!(synthesisResult && synthesisResult.success && synthesisResult.compound);
+  const compound = synthesisResult?.compound;
+  const slotsSummary = slots.map((s) => `${s.ratio}x ${s.symbol}`).join(' + ');
+
+  const knownFacts: string[] = [
+    'Stoichiometric elemental synthesis requires specific whole-number atom ratios to complete outer electron shells.',
+    'Total mass and atomic quantities are conserved throughout chemical synthesis reactions.',
+  ];
+
+  if (isSynthesized && compound) {
+    knownFacts.push(`Synthesized compound: ${compound.commonName} (${compound.formula}).`);
+    knownFacts.push(`Balanced reaction equation: ${compound.synthesisEquation}.`);
+    knownFacts.push(`Chemical bonding character: ${compound.bondType} bonding.`);
+    if (compound.energyChangeKj !== null) {
+      knownFacts.push(`Calculated enthalpy change: ${compound.energyChangeKj} kJ/mol.`);
+    }
+  } else if (!synthesisResult.success) {
+    knownFacts.push(`The combination ${slotsSummary} does not satisfy stable electron configurations.`);
+  }
+
+  return {
+    schemaVersion: EXPLAINER_SCHEMA_VERSION,
+    simulationId: 'chemistry-reactor',
+    simulationTitle: isSynthesized && compound ? `Magic Reactor: ${compound.commonName}` : 'Magic Synthesis Reactor',
+    domain: 'chemistry',
+    stateRevision: revision,
+    timestamp: new Date().toISOString(),
+    inputs: {
+      slots,
+      slotsSummary,
+    },
+    outputs: {
+      status: isSynthesized ? 'synthesized' : 'incompatible',
+      isSynthesized,
+      formula: compound?.formula,
+      compoundName: compound?.commonName,
+      synthesisEquation: compound?.synthesisEquation,
+      bondType: compound?.bondType,
+      energyChangeKj: compound?.energyChangeKj ?? undefined,
+      slotsSummary,
+    },
+    assumptions: [
+      'Direct elemental combination under idealized catalytic conditions.',
+      'Complete stoichiometric conversion with 100% reaction yield.',
+    ],
+    knownFacts,
+    unavailableFacts: [
+      'Reaction pathway kinetics and activation energies are abstracted.',
+    ],
+    supportedIntents: [
+      'explain_current_state',
+      'why_did_this_happen',
+      'explain_equations',
+      'what_if',
+      'ask_question',
+    ],
+  };
+}
+
+export function buildEquationValidatorExplainerContext(
+  equation: string,
+  validation: EquationValidationResult,
+  revision: number = 1
+): SimulationExplainerContext {
+  const isMalformed = validation.statusText === 'Malformed Equation';
+  const isBalanced = validation.isBalanced;
+
+  const knownFacts: string[] = [
+    'The Law of Conservation of Mass states that atoms cannot be created or destroyed in chemical reactions.',
+    'A chemical equation is balanced if and only if the count of each atom type is identical on both sides.',
+  ];
+
+  if (isBalanced) {
+    knownFacts.push(`Equation ${equation} is fully balanced.`);
+  } else if (!isMalformed) {
+    knownFacts.push(`Equation ${equation} is unbalanced: atom quantities do not match between reactants and products.`);
+  }
+
+  return {
+    schemaVersion: EXPLAINER_SCHEMA_VERSION,
+    simulationId: 'chemistry-validator',
+    simulationTitle: 'Chemical Equation Balancer',
+    domain: 'chemistry',
+    stateRevision: revision,
+    timestamp: new Date().toISOString(),
+    inputs: {
+      equation,
+    },
+    outputs: {
+      isBalanced,
+      isMalformed,
+      statusText: validation.statusText,
+      reactantCounts: validation.reactantCounts,
+      productCounts: validation.productCounts,
+    },
+    assumptions: [
+      'Chemical formulas follow IUPAC nomenclature and standard ASCII formatting.',
+    ],
+    knownFacts,
+    unavailableFacts: [
+      'Equilibrium constants and reaction reversibility are not evaluated by the atom balancer.',
+    ],
+    supportedIntents: [
+      'explain_current_state',
+      'why_did_this_happen',
+      'explain_equations',
+      'ask_question',
+    ],
+  };
+}
+
+export function buildChemistryDiscoveriesExplainerContext(
+  count: number,
+  revision: number = 1
+): SimulationExplainerContext {
+  return {
+    schemaVersion: EXPLAINER_SCHEMA_VERSION,
+    simulationId: 'chemistry-runs',
+    simulationTitle: `Science Discoveries (${count})`,
+    domain: 'chemistry',
+    stateRevision: revision,
+    timestamp: new Date().toISOString(),
+    inputs: {
+      savedCount: count,
+    },
+    outputs: {
+      savedCount: count,
+    },
+    assumptions: [
+      'Saved runs represent verified stoichiometric or physical simulations stored offline.',
+    ],
+    knownFacts: [
+      `Local offline storage contains ${count} verified laboratory run(s).`,
+      'Restoring any discovery populates the simulation with canonical inputs for re-simulation.',
+    ],
+    unavailableFacts: [],
+    supportedIntents: ['explain_current_state', 'ask_question'],
+  };
+}
+
 

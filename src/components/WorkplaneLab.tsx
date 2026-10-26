@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { PERIODIC_TABLE, type ChemicalElement } from '../chemistry-data/elements';
 import { LAB_CHEMICALS, type LabChemicalItem, type ParticleAtom3D } from '../chemistry-data/reagents';
 import {
@@ -10,10 +10,13 @@ import { calculateLimitingReagent, type StoichiometryResult } from '../chemistry
 import { Molecule3DViewer } from './Molecule3DViewer';
 import { buildWorkplaneExplainerContext } from '../core/explainer/context-builders/chemistryContext';
 import type { SimulationExplainerContext } from '../core/explainer/types';
+import type { ChemistryExperiment } from '../core/experiment/types';
 
 interface WorkplaneLabProps {
   onSaveRun?: (title: string, details: string, tag: string) => void;
+  onSaveExperiment?: (exp: ChemistryExperiment) => void;
   onContextChange?: (context: SimulationExplainerContext) => void;
+  restoredExperiment?: ChemistryExperiment | null;
 }
 
 export interface PlacedElementSphere {
@@ -25,7 +28,12 @@ export interface PlacedElementSphere {
   y: number;
 }
 
-export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContextChange }) => {
+export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({
+  onSaveRun,
+  onSaveExperiment,
+  onContextChange,
+  restoredExperiment,
+}) => {
   // Sidebar tab: 'elements' or 'compounds'
   const [sidebarTab, setSidebarTab] = useState<'elements' | 'compounds'>('elements');
   const [elementCategory, setElementCategory] = useState<string>('all');
@@ -44,6 +52,39 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
 
   // 3D Atomic & Molecular Inspector target
   const [inspectElement, setInspectElement] = useState<ChemicalElement | null>(null);
+
+  // Restore experiment when restoredExperiment prop changes
+  useEffect(() => {
+    if (restoredExperiment && restoredExperiment.type === 'chemistry' && restoredExperiment.parameters.mode === 'workplane') {
+      queueMicrotask(() => {
+        setHasBeaker(true);
+        const newSpheres: PlacedElementSphere[] = [];
+        const reactants = restoredExperiment.parameters.reactants || [];
+        reactants.forEach((r, idx) => {
+          const el = PERIODIC_TABLE.find(
+            (e) => e.symbol.toLowerCase() === r.formula.toLowerCase() || e.name.toLowerCase() === r.name.toLowerCase()
+          );
+          if (el) {
+            newSpheres.push({
+              instanceId: `restored-${el.symbol}-${idx}-${Date.now()}`,
+              element: el,
+              count: r.ratio || 1,
+              inBeaker: true,
+              x: 60 + idx * 36,
+              y: 75,
+            });
+          }
+        });
+        setPlacedSpheres(newSpheres);
+        const proportions = newSpheres.map((s) => ({ symbol: s.element.symbol, ratio: s.count }));
+        const res = synthesizeCompoundFromElements(proportions);
+        setSynthesisResult(res);
+        if (res.success && res.compound) {
+          setResultingCompoundSphere(res.compound);
+        }
+      });
+    }
+  }, [restoredExperiment]);
   const [inspectChemical, setInspectChemical] = useState<LabChemicalItem | null>(null);
 
   // Right-click context menu for tuning sphere count
@@ -70,10 +111,12 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
     return matchesCategory && matchesSearch;
   });
 
-  // Spheres currently inside the beaker
-  const beakerSpheres = placedSpheres.filter((s) => s.inBeaker);
-  // Spheres resting freely on the canvas staging bench
-  const canvasSpheres = placedSpheres.filter((s) => !s.inBeaker);
+  // Memoize beaker and canvas spheres derived from placedSpheres
+  const beakerSpheres = useMemo(() => placedSpheres.filter((s) => s.inBeaker), [placedSpheres]);
+  const canvasSpheres = useMemo(() => placedSpheres.filter((s) => !s.inBeaker), [placedSpheres]);
+
+  // Keep ref of last serialized state to prevent infinite re-render loops and rapid timer cancellations
+  const lastEmittedStateRef = useRef<string>('');
 
   // Notify Science Explainer Companion whenever beaker, elements, or reaction simulation updates!
   useEffect(() => {
@@ -83,6 +126,22 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
       count: s.count,
     }));
     const workplaneElementsCount = canvasSpheres.reduce((acc, s) => acc + s.count, 0);
+
+    const stateKey = JSON.stringify({
+      hasBeaker,
+      beakerElements,
+      workplaneElementsCount,
+      synthesis: synthesisResult?.success
+        ? synthesisResult.compound?.formula
+        : synthesisResult
+        ? 'incompatible'
+        : 'none',
+    });
+
+    if (lastEmittedStateRef.current === stateKey) {
+      return;
+    }
+    lastEmittedStateRef.current = stateKey;
 
     const ctx = buildWorkplaneExplainerContext(
       {
@@ -94,7 +153,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
       Date.now()
     );
     onContextChange?.(ctx);
-  }, [hasBeaker, placedSpheres, synthesisResult, onContextChange]);
+  }, [hasBeaker, beakerSpheres, canvasSpheres, synthesisResult, onContextChange]);
 
   // Add an element sphere (either onto workplane or into beaker)
   const addElementSphere = (element: ChemicalElement, targetBeaker: boolean = false) => {
@@ -238,6 +297,36 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
 
       if (res.success && res.compound) {
         setResultingCompoundSphere(res.compound);
+        if (onSaveExperiment) {
+          const exp: ChemistryExperiment = {
+            schemaVersion: 1,
+            id: crypto.randomUUID(),
+            type: 'chemistry',
+            title: `Synthesis: ${res.compound.formula} (${res.compound.commonName})`,
+            description: `${res.compound.synthesisEquation} • ${res.compound.bondType} Bond`,
+            createdAt: new Date().toISOString(),
+            appVersion: '1.0.0',
+            parameters: {
+              mode: 'workplane',
+              reactants: proportions.map((p) => ({
+                formula: p.symbol,
+                name: p.symbol,
+                ratio: p.ratio,
+              })),
+            },
+            results: {
+              reactionType: 'Synthesis Reaction',
+              balancedEquation: res.compound.synthesisEquation,
+              products: [res.compound.formula],
+              isConserved: true,
+              enthalpyKj: res.compound.energyChangeKj ?? null,
+              isCurated: true,
+              provenance: 'SimXSphere Workplane Synthesis Engine',
+              notes: res.compound.description,
+            },
+          };
+          onSaveExperiment(exp);
+        }
         if (onSaveRun) {
           onSaveRun(
             `Synthesis: ${res.compound.formula} (${res.compound.commonName})`,
@@ -269,7 +358,12 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
       molarMass: resultingCompoundSphere.molarMass,
     };
 
-    return calculateLimitingReagent(reactants, product);
+    try {
+      return calculateLimitingReagent(reactants, product);
+    } catch (err) {
+      console.warn('Stoichiometry calculation error:', err);
+      return null;
+    }
   };
 
   const open3DViewerForCompound = (compound: SynthesizedCompound) => {
@@ -327,7 +421,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({ onSaveRun, onContext
       color: compound.appearanceColor,
       molarMass: compound.molarMass,
       ph: 7.0,
-      hazardBadge: 'Safe',
+      hazardBadge: 'Minimal Hazard',
       description: compound.description,
       molecular3D: {
         geometryName: compound.molecularGeometry || 'Coordination Geometry',

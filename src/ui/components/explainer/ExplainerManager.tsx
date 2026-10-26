@@ -136,6 +136,7 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
 
   const debounceTimerRef = useRef<number | null>(null);
   const lastSpokenTextRef = useRef<string>('');
+  const lastSimulationIdRef = useRef<string>(activeContext.simulationId);
   const safetyTimeoutRef = useRef<number | null>(null);
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -154,7 +155,15 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Debounce by 450ms so rapid slider adjustments settle before speaking
+    const isSimulationChange = lastSimulationIdRef.current !== activeContext.simulationId;
+    if (isSimulationChange) {
+      lastSimulationIdRef.current = activeContext.simulationId;
+      lastSpokenTextRef.current = '';
+    }
+
+    // Fast switch (120ms) for tab navigation; 450ms debounce for continuous sliders
+    const delay = isSimulationChange ? 120 : 450;
+
     debounceTimerRef.current = window.setTimeout(() => {
       const newNarration = generateAutoNarration(activeContext);
       setNarration(newNarration);
@@ -206,7 +215,7 @@ export const ExplainerManager: React.FC<ExplainerManagerProps> = ({ activeContex
           setIsSpeaking(false);
         }, estimatedDurationMs);
       }
-    }, 450);
+    }, delay);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);

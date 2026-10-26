@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type {
   SimulationExplainerContext,
   ExplainerIntent,
@@ -69,7 +69,7 @@ export const ExplainerPanel: React.FC<ExplainerPanelProps> = ({
   }, [status, onStatusChange]);
 
   // Check Ollama connectivity on mount or when endpoint changes
-  const checkHealth = async () => {
+  const checkHealth = useCallback(async () => {
     setStatus('checking');
     setStatusError(null);
     const health = await checkOllamaHealth(config.endpoint);
@@ -83,13 +83,15 @@ export const ExplainerPanel: React.FC<ExplainerPanelProps> = ({
       setStatus('offline');
       setStatusError(health.error || 'Could not connect to Ollama');
     }
-  };
+  }, [config.endpoint, config.model]);
 
   useEffect(() => {
     if (isOpen) {
-      checkHealth();
+      queueMicrotask(() => {
+        void checkHealth();
+      });
     }
-  }, [isOpen, config.endpoint]);
+  }, [isOpen, checkHealth]);
 
   // Stop speech synthesis if panel closes or unmounts
   useEffect(() => {

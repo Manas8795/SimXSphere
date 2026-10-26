@@ -7,13 +7,20 @@ import {
 import type { ChemistryExperiment, ChemistryParameters, ChemistryResults } from '../../core/experiment/types';
 import { buildChemistryExplainerContext } from '../../core/explainer/context-builders/chemistryContext';
 import type { SimulationExplainerContext } from '../../core/explainer/types';
+import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
+import { ShareDialog } from '../components/sharing/ShareDialog';
 
 interface ChemistryViewProps {
   onSaveExperiment: (exp: ChemistryExperiment) => void;
   onContextChange?: (context: SimulationExplainerContext) => void;
+  restoredExperiment?: ChemistryExperiment | null;
 }
 
-export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, onContextChange }) => {
+export const ChemistryView: React.FC<ChemistryViewProps> = ({
+  onSaveExperiment,
+  onContextChange,
+  restoredExperiment,
+}) => {
   const [reagentAId, setReagentAId] = useState<string>('hcl');
   const [volumeAMl, setVolumeAMl] = useState<number>(50);
   const [concAM, setConcAM] = useState<number>(1.0);
@@ -29,6 +36,35 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
 
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
+  // Restore experiment when restoredExperiment prop changes
+  useEffect(() => {
+    if (restoredExperiment && restoredExperiment.type === 'chemistry' && restoredExperiment.parameters.reactants.length >= 2) {
+      const [rA, rB] = restoredExperiment.parameters.reactants;
+      const foundA = REAGENTS_DATABASE.find(
+        (reg) => reg.formula.toLowerCase() === rA.formula.toLowerCase() || reg.name.toLowerCase() === rA.name.toLowerCase()
+      );
+      const foundB = REAGENTS_DATABASE.find(
+        (reg) => reg.formula.toLowerCase() === rB.formula.toLowerCase() || reg.name.toLowerCase() === rB.name.toLowerCase()
+      );
+      const idA = foundA?.id || 'hcl';
+      const idB = foundB?.id || 'naoh';
+      const vA = rA.volumeMl ?? 50;
+      const cA = rA.concentrationM ?? 1.0;
+      const vB = rB.volumeMl ?? 50;
+      const cB = rB.concentrationM ?? 1.0;
+
+      queueMicrotask(() => {
+        setReagentAId(idA);
+        setVolumeAMl(vA);
+        setConcAM(cA);
+        setReagentBId(idB);
+        setVolumeBMl(vB);
+        setConcBM(cB);
+        setReactionResult(simulateChemicalMixing(idA, vA, cA, idB, vB, cB));
+      });
+    }
+  }, [restoredExperiment]);
+
   const reagentA = REAGENTS_DATABASE.find((r) => r.id === reagentAId) || REAGENTS_DATABASE[0];
   const reagentB = REAGENTS_DATABASE.find((r) => r.id === reagentBId) || REAGENTS_DATABASE[1];
 
@@ -41,18 +77,21 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
         { formula: reagentB.formula, name: reagentB.name, volumeMl: volumeBMl, concentrationM: concBM },
       ],
     };
+    const isVerified = reactionResult.semantic === 'engine_calculated' || reactionResult.semantic === 'reviewed_reference';
     const results: ChemistryResults = {
       reactionType: reactionResult.reactionType,
       balancedEquation: reactionResult.balancedEquation,
       products: reactionResult.ionicSpecies || [],
-      isConserved: true,
+      isConserved: isVerified,
       finalPh: reactionResult.finalPh,
       temperatureChangeC: reactionResult.temperatureChangeC,
       precipitate: reactionResult.precipitateFormed,
       gasEvolved: reactionResult.gasEvolved,
-      enthalpyKj: reactionResult.temperatureChangeC > 0 ? -57.1 : 0,
-      isCurated: true,
-      provenance: 'SimXSphere Aqueous Engine',
+      enthalpyKj: reactionResult.enthalpyKj ?? null,
+      isCurated: isVerified,
+      provenance: reactionResult.semantic === 'engine_calculated'
+        ? 'SimXSphere Stoichiometric Engine'
+        : (reactionResult.semantic === 'reviewed_reference' ? 'SimXSphere Curated Reference' : 'Educational Approximation'),
     };
     const ctx = buildChemistryExplainerContext(params, results, Date.now());
     onContextChange?.(ctx);
@@ -74,14 +113,17 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
     }, 450);
   };
 
-  const handleSave = () => {
-    // Generate valid ChemistryExperiment record with authentic domain schema
-    const expRecord: ChemistryExperiment = {
+  const [shareExperiment, setShareExperiment] = useState<ChemistryExperiment | null>(null);
+
+  const buildCurrentExperimentRecord = (): ChemistryExperiment => {
+    const isVerified = reactionResult.semantic === 'engine_calculated' || reactionResult.semantic === 'reviewed_reference';
+    const phText = reactionResult.finalPh !== null ? ` Final pH: ${reactionResult.finalPh.toFixed(2)}` : ' Final pH: Unmodeled mixture';
+    return {
       schemaVersion: 1,
       id: crypto.randomUUID(),
       type: 'chemistry',
       title: `Aqueous: ${reagentA.name} + ${reagentB.name}`,
-      description: `${reactionResult.reactionType}: ${reactionResult.balancedEquation}. Final pH: ${reactionResult.finalPh.toFixed(2)}`,
+      description: `${reactionResult.reactionType}: ${reactionResult.balancedEquation}.${phText}`,
       createdAt: new Date().toISOString(),
       appVersion: '1.0.0',
       parameters: {
@@ -99,24 +141,40 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
         reactionType: reactionResult.reactionType,
         balancedEquation: reactionResult.balancedEquation,
         products: [reactionResult.precipitateFormed || '', reactionResult.gasEvolved || ''].filter(Boolean),
-        isConserved: true,
+        isConserved: isVerified,
         finalPh: reactionResult.finalPh,
         temperatureChangeC: reactionResult.temperatureChangeC,
         precipitate: reactionResult.precipitateFormed,
         gasEvolved: reactionResult.gasEvolved,
-        enthalpyKj: null,
-        isCurated: true,
-        provenance: 'SimXSphere Curated Physical Chemistry Engine',
+        enthalpyKj: reactionResult.enthalpyKj ?? null,
+        isCurated: isVerified,
+        provenance: reactionResult.semantic === 'engine_calculated'
+          ? 'SimXSphere Stoichiometric Engine'
+          : (reactionResult.semantic === 'reviewed_reference' ? 'SimXSphere Curated Reference' : 'Educational Approximation'),
         notes: reactionResult.description,
       },
     };
+  };
 
+  const handleSave = () => {
+    const expRecord = buildCurrentExperimentRecord();
     onSaveExperiment(expRecord);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const getPhColor = (ph: number) => {
+  const handleExportSimXPack = async () => {
+    const expRecord = buildCurrentExperimentRecord();
+    const { filename, jsonString } = await createSingleSimXPackage(expRecord);
+    triggerFileDownload(filename, jsonString);
+  };
+
+  const handleOpenShare = () => {
+    setShareExperiment(buildCurrentExperimentRecord());
+  };
+
+  const getPhColor = (ph: number | null) => {
+    if (ph === null) return '#475569'; // Slate for unmodeled / non-aqueous mixture
     if (ph < 3) return '#ef4444'; // Strong acid (Red)
     if (ph < 6) return '#f59e0b'; // Weak acid (Orange/Yellow)
     if (ph <= 8) return '#10b981'; // Neutral (Green)
@@ -140,7 +198,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               id="mix-chemicals-btn"
               type="button"
@@ -157,6 +215,24 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
               onClick={handleSave}
             >
               {saveSuccess ? '🎉 Saved to Discoveries!' : '⭐ Save Discovery'}
+            </button>
+            <button
+              type="button"
+              id="export-chemistry-simxpack-btn"
+              className="btn btn-secondary"
+              onClick={handleExportSimXPack}
+              title="Export as portable offline .simxpack file"
+            >
+              📦 Export .simxpack
+            </button>
+            <button
+              type="button"
+              id="share-chemistry-btn"
+              className="btn btn-secondary"
+              onClick={handleOpenShare}
+              title="Share simulation package"
+            >
+              🔗 Share
             </button>
           </div>
         </div>
@@ -383,17 +459,24 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
               fontFamily: 'var(--font-mono)',
               boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
               border: '1.5px solid var(--wood-frame)',
+              textAlign: 'center',
             }}>
-              pH {reactionResult.finalPh.toFixed(2)}
+              {reactionResult.finalPh !== null ? `pH ${reactionResult.finalPh.toFixed(2)}` : 'pH Unmodeled'}
             </div>
           </div>
 
           {/* Reaction Chemical Details & Spectroscopy */}
           <div style={{ flex: 1, minWidth: 320 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
               <span className="badge badge-indigo">{reactionResult.reactionType}</span>
-              {reactionResult.temperatureChangeC > 0 && (
-                <span className="badge badge-amber">ΔT = +{reactionResult.temperatureChangeC}°C (Exothermic)</span>
+              <span className={`badge ${reactionResult.semantic === 'engine_calculated' ? 'badge-emerald' : (reactionResult.semantic === 'reviewed_reference' ? 'badge-indigo' : 'badge-slate')}`}>
+                {reactionResult.semantic === 'engine_calculated' ? 'Engine Calculated' : (reactionResult.semantic === 'reviewed_reference' ? 'Reviewed Reference' : 'Educational Approx')}
+              </span>
+              {reactionResult.temperatureChangeC !== null && reactionResult.temperatureChangeC > 0 && (
+                <span className="badge badge-amber">ΔT ≈ +{reactionResult.temperatureChangeC.toFixed(1)}°C (Exothermic)</span>
+              )}
+              {reactionResult.enthalpyKj !== null && reactionResult.enthalpyKj !== undefined && (
+                <span className="badge badge-indigo">ΔH = {reactionResult.enthalpyKj} kJ/mol</span>
               )}
             </div>
 
@@ -427,10 +510,29 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({ onSaveExperiment, 
                   {reactionResult.ionicSpecies.join('  +  ')}
                 </code>
               </div>
+
+              {reactionResult.assumptions && reactionResult.assumptions.length > 0 && (
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: '#bae6fd' }}>
+                  <strong>Model Assumptions: </strong> {reactionResult.assumptions.join(' • ')}
+                </div>
+              )}
+
+              {reactionResult.limitations && reactionResult.limitations.length > 0 && (
+                <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', padding: '10px 12px', borderRadius: 8, fontSize: 12, color: '#fde68a' }}>
+                  <strong>Model Limitations: </strong> {reactionResult.limitations.join(' • ')}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {shareExperiment && (
+        <ShareDialog
+          experiment={shareExperiment}
+          onClose={() => setShareExperiment(null)}
+        />
+      )}
     </div>
   );
 };

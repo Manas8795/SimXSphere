@@ -163,6 +163,135 @@ export function generateAutoNarration(context: SimulationExplainerContext): {
       };
     }
 
+    if (context.simulationId === 'chemistry-table') {
+      const el = context.inputs.selectedElement as {
+        name?: string;
+        symbol?: string;
+        atomicNumber?: number;
+        category?: string;
+        atomicMass?: number;
+        commonValences?: number[];
+        electronConfiguration?: string;
+        standardState?: string;
+      } | null;
+
+      if (el && el.symbol) {
+        const catName = (el.category || 'element').replace(/-/g, ' ');
+        const line1 = `${el.name} (${el.symbol}, Atomic #${el.atomicNumber}) is a ${catName} with atomic mass ${Number(el.atomicMass).toFixed(2)} u.`;
+        const valStr = el.commonValences && el.commonValences.length > 0
+          ? `valences ${el.commonValences.join(', ')}`
+          : 'standard electron configuration';
+        const line2 = el.electronConfiguration
+          ? `${el.name} features electron configuration ${el.electronConfiguration} (${valStr}).`
+          : `This element exists in standard state ${el.standardState || 'matter'} with characteristic atomic shell behavior.`;
+        return {
+          headline: `${el.name} (${el.symbol})`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      const line1 = `Periodic Table: 118 elemental building blocks arranged by atomic number, valence shells, and chemical families.`;
+      const line2 = `Tap any element block to inspect its atomic mass, valence electrons, and 3D quantum electron orbits!`;
+      return {
+        headline: `Periodic Table of Elements`,
+        line1,
+        line2,
+        spokenText: `${line1} ${line2}`,
+      };
+    }
+
+    if (context.simulationId === 'chemistry-reactor') {
+      const isSynthesized = outputs.isSynthesized === true;
+      const compoundName = String(outputs.compoundName || '');
+      const formula = String(outputs.formula || '');
+      const equation = String(outputs.synthesisEquation || '');
+      const bondType = String(outputs.bondType || 'chemical');
+      const slotsSummary = String(outputs.slotsSummary || 'elements');
+
+      if (isSynthesized) {
+        const line1 = `Synthesis successful! ${equation || `${formula} was created`}.`;
+        const line2 = `${compoundName} is held together by ${bondType} bonds with 100% conservation of mass and atoms.`;
+        return {
+          headline: `Synthesized: ${compoundName} (${formula})`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      const status = String(outputs.status || '');
+      if (status === 'incompatible') {
+        const line1 = `This combination (${slotsSummary}) does not form a recognized stable molecule under standard octet rules.`;
+        const line2 = `Try adjusting slot ratios or combining elements with complementary valence shells like Hydrogen and Oxygen.`;
+        return {
+          headline: `Synthesis Incompatible`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      const line1 = `Magic Reactor holds ${slotsSummary}.`;
+      const line2 = `Adjust the ratio counters or select a preset compound above to trigger elemental synthesis!`;
+      return {
+        headline: `Magic Synthesis Reactor`,
+        line1,
+        line2,
+        spokenText: `${line1} ${line2}`,
+      };
+    }
+
+    if (context.simulationId === 'chemistry-validator') {
+      const isBalanced = outputs.isBalanced === true;
+      const isMalformed = outputs.isMalformed === true;
+      const eq = String(inputs.equation || '');
+
+      if (isMalformed) {
+        const line1 = `Chemical Equation Balancer: Please enter an equation with reactants and products separated by an arrow.`;
+        const line2 = `Tap any of the challenge buttons above like "Water Synthesis" or "Methane Combustion" to test!`;
+        return {
+          headline: `Equation Balancer`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      if (isBalanced) {
+        const line1 = `Balanced equation! Every atom on the reactant side matches the product side with exact parity.`;
+        const line2 = `The Law of Conservation of Mass is satisfied with 0 net gain or loss of matter.`;
+        return {
+          headline: `Balanced Equation: ${eq}`,
+          line1,
+          line2,
+          spokenText: `${line1} ${line2}`,
+        };
+      }
+
+      const line1 = `Unbalanced equation! Atom counts between reactants and products do not match.`;
+      const line2 = `Adjust stoichiometric coefficients in front of each compound until all atom types balance out.`;
+      return {
+        headline: `Unbalanced Equation`,
+        line1,
+        line2,
+        spokenText: `${line1} ${line2}`,
+      };
+    }
+
+    if (context.simulationId === 'chemistry-runs') {
+      const count = Number(outputs.savedCount ?? inputs.savedCount ?? 0);
+      const line1 = `My Science Discoveries: ${count} verified laboratory experiment(s) preserved in local storage.`;
+      const line2 = `Click "Restore" on any experiment to reload its authentic parameters into the active simulation.`;
+      return {
+        headline: `Science Discoveries (${count})`,
+        line1,
+        line2,
+        spokenText: `${line1} ${line2}`,
+      };
+    }
+
     const rxnType = String(outputs.reactionType ?? 'Chemical Reaction');
     const equation = String(outputs.balancedEquation ?? '');
     const ph = outputs.finalPh !== undefined && outputs.finalPh !== null ? Number(outputs.finalPh) : null;

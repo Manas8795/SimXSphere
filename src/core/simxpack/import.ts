@@ -194,7 +194,7 @@ export async function importSimXPack(
     let parsedExp: Record<string, unknown>;
     try {
       parsedExp = JSON.parse(decoder.decode(fileBytes));
-    } catch (err) {
+    } catch {
       throw new Error(`Malformed experiment JSON in "${expEntry.path}"`);
     }
 

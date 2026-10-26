@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { validateBalancedEquation, type EquationValidationResult } from '../chemistry-engine/atom-counter';
+import { buildEquationValidatorExplainerContext } from '../core/explainer/context-builders/chemistryContext';
+import type { SimulationExplainerContext } from '../core/explainer/types';
 
-export const EquationValidatorView: React.FC = () => {
+interface EquationValidatorViewProps {
+  onContextChange?: (context: SimulationExplainerContext) => void;
+}
+
+export const EquationValidatorView: React.FC<EquationValidatorViewProps> = ({ onContextChange }) => {
   const [equationInput, setEquationInput] = useState<string>('2H2 + O2 → 2H2O');
   const [validation, setValidation] = useState<EquationValidationResult>(() =>
     validateBalancedEquation('2H2 + O2 → 2H2O')
   );
+
+  useEffect(() => {
+    onContextChange?.(buildEquationValidatorExplainerContext(equationInput, validation, Date.now()));
+  }, [equationInput, validation, onContextChange]);
 
   const sampleEquations = [
     { label: 'Water Synthesis', eq: '2H2 + O2 → 2H2O' },

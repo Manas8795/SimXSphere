@@ -1399,9 +1399,12 @@ export const Molecule3DViewer: React.FC<Molecule3DViewerProps> = ({
                   Hazard Rating
                 </div>
                 <div style={{ marginTop: 2 }}>
-                  <span className={`hazard-badge hazard-${chemical?.hazardBadge.toLowerCase()}`}>
+                  <span className={`hazard-badge hazard-${chemical?.hazardBadge.toLowerCase().replace(/\s+/g, '-')}`}>
                     {chemical?.hazardBadge}
                   </span>
+                </div>
+                <div style={{ color: isCosmic ? '#94a3b8' : 'var(--lab-text-muted)', fontSize: '0.68rem', marginTop: 3 }}>
+                  Academic reference model. Consult official SDS for physical handling.
                 </div>
               </div>
             </>

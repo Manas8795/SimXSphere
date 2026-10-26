@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navbar, type DisciplineTab, type ThemeMode } from './ui/components/Navbar';
 import { WorkplaneLab } from './components/WorkplaneLab';
 import { PeriodicTable } from './components/PeriodicTable';
@@ -10,8 +10,16 @@ import { PERIODIC_TABLE, type ChemicalElement } from './chemistry-data/elements'
 import { ProbabilityView } from './ui/views/ProbabilityView';
 import { ProjectileView } from './ui/views/ProjectileView';
 import { ExplainerManager } from './ui/components/explainer/ExplainerManager';
-import { buildWorkplaneExplainerContext } from './core/explainer/context-builders/chemistryContext';
+import {
+  buildWorkplaneExplainerContext,
+  buildChemistryDiscoveriesExplainerContext,
+} from './core/explainer/context-builders/chemistryContext';
+import { createSingleSimXPackage, triggerFileDownload } from './core/simxpack/singlePackage';
+import { ShareDialog } from './ui/components/sharing/ShareDialog';
+import { ImportDialog } from './ui/components/sharing/ImportDialog';
 import type { SimulationExplainerContext } from './core/explainer/types';
+import type { ExperimentRun } from './core/experiment/types';
+import { LocalStorageAdapter } from './storage/localAdapter';
 
 export interface SavedExperimentRun {
   id: string;
@@ -80,58 +88,122 @@ export const App: React.FC = () => {
     }
   };
 
-  // Lab experiment history stored in browser state / localStorage (empty on fresh session)
-  const [labRuns, setLabRuns] = useState<SavedExperimentRun[]>(() => {
+  // Unified LocalStorageAdapter for canonical ExperimentRun persistence
+  const storageAdapter = useMemo(() => new LocalStorageAdapter(), []);
+  const [savedExperiments, setSavedExperiments] = useState<ExperimentRun[]>([]);
+  const [restoredExperiment, setRestoredExperiment] = useState<ExperimentRun | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
+
+  // Sharing & Portable Export/Import State
+  const [shareTargetExperiment, setShareTargetExperiment] = useState<ExperimentRun | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState<boolean>(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Load experiments on initial mount
+  useEffect(() => {
+    storageAdapter.listExperiments().then((list) => {
+      setSavedExperiments(list);
+    }).catch((err) => {
+      console.warn('Failed to load local experiments:', err);
+    });
+  }, [storageAdapter]);
+
+  const handleSaveExperiment = useCallback(async (exp: ExperimentRun) => {
     try {
-      const saved = localStorage.getItem('simxsphere_lab_runs');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Fallback
+      await storageAdapter.saveExperiment(exp);
+      const updated = await storageAdapter.listExperiments();
+      setSavedExperiments(updated);
+      setStorageError(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Storage error';
+      console.error('Failed to save experiment:', err);
+      setStorageError(msg);
+      alert(`Could not save experiment: ${msg}`);
     }
-    return [];
-  });
+  }, [storageAdapter]);
 
-  const handleSaveRun = (title: string, details: string, tag: string) => {
-    const newRun: SavedExperimentRun = {
-      id: crypto.randomUUID(),
-      title,
-      details,
-      timestamp: new Date().toLocaleTimeString(),
-      tag,
-    };
-    setLabRuns((prev) => {
-      const updated = [newRun, ...prev];
-      try {
-        localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
-      } catch {
-        // localStorage may be disabled or full
-      }
-      return updated;
-    });
-  };
+  const handleExportExperiment = useCallback(async (exp: ExperimentRun) => {
+    try {
+      const { filename, jsonString } = await createSingleSimXPackage(exp);
+      triggerFileDownload(filename, jsonString);
+      setActionNotice(`✓ Exported ${filename}`);
+      setTimeout(() => setActionNotice(null), 3500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Could not export experiment: ${msg}`);
+    }
+  }, []);
 
-  const handleDeleteRun = (id: string) => {
-    setLabRuns((prev) => {
-      const updated = prev.filter((r) => r.id !== id);
-      try {
-        localStorage.setItem('simxsphere_lab_runs', JSON.stringify(updated));
-      } catch {
-        // ignore
+  const handleImportComplete = useCallback(async (importedList: ExperimentRun[], restoreTarget?: ExperimentRun) => {
+    try {
+      for (const exp of importedList) {
+        await storageAdapter.saveExperiment(exp);
       }
-      return updated;
-    });
-  };
+      const updated = await storageAdapter.listExperiments();
+      setSavedExperiments(updated);
+      setActionNotice(`✓ Successfully imported ${importedList.length} experiment(s)`);
+      setTimeout(() => setActionNotice(null), 3500);
 
-  const handleClearAllRuns = () => {
-    setLabRuns(() => {
-      try {
-        localStorage.removeItem('simxsphere_lab_runs');
-      } catch {
-        // ignore
+      if (restoreTarget) {
+        setRestoredExperiment(restoreTarget);
+        if (restoreTarget.type === 'chemistry') {
+          setActiveDiscipline('chemistry');
+          if (restoreTarget.parameters.mode === 'workplane') {
+            setChemistrySubTab('workplane');
+          } else if (restoreTarget.parameters.mode === 'synthesis') {
+            setChemistrySubTab('reactor');
+          } else {
+            setChemistrySubTab('aqueous');
+          }
+        } else if (restoreTarget.type === 'probability') {
+          setActiveDiscipline('probability');
+        } else if (restoreTarget.type === 'projectile') {
+          setActiveDiscipline('physics');
+        }
       }
-      return [];
-    });
-  };
+    } catch (err) {
+      console.error('Failed to save imported experiments:', err);
+      alert('Could not save imported experiments to local storage.');
+    }
+  }, [storageAdapter]);
+
+  const handleDeleteExperiment = useCallback(async (id: string) => {
+    try {
+      await storageAdapter.deleteExperiment(id);
+      const updated = await storageAdapter.listExperiments();
+      setSavedExperiments(updated);
+    } catch (err) {
+      console.error('Failed to delete experiment:', err);
+    }
+  }, [storageAdapter]);
+
+  const handleClearAllExperiments = useCallback(async () => {
+    if (!window.confirm('Are you sure you want to delete all saved discoveries?')) return;
+    try {
+      await storageAdapter.clearAllExperiments();
+      setSavedExperiments([]);
+    } catch (err) {
+      console.error('Failed to clear experiments:', err);
+    }
+  }, [storageAdapter]);
+
+  const handleRestoreExperiment = useCallback((exp: ExperimentRun) => {
+    setRestoredExperiment(exp);
+    if (exp.type === 'chemistry') {
+      setActiveDiscipline('chemistry');
+      if (exp.parameters.mode === 'workplane') {
+        setChemistrySubTab('workplane');
+      } else if (exp.parameters.mode === 'synthesis') {
+        setChemistrySubTab('reactor');
+      } else {
+        setChemistrySubTab('aqueous');
+      }
+    } else if (exp.type === 'probability') {
+      setActiveDiscipline('probability');
+    } else if (exp.type === 'projectile') {
+      setActiveDiscipline('physics');
+    }
+  }, []);
 
   return (
     <div
@@ -153,9 +225,14 @@ export const App: React.FC = () => {
               window.speechSynthesis.cancel();
             }
             setActiveDiscipline(disc);
+            if (disc === 'chemistry' && chemistrySubTab === 'runs') {
+              handleExplainerContextChange(
+                buildChemistryDiscoveriesExplainerContext(savedExperiments.length, Date.now())
+              );
+            }
           }
         }}
-        runCount={labRuns.length}
+        runCount={savedExperiments.length}
         theme={theme}
         onSelectTheme={handleSelectTheme}
       />
@@ -247,12 +324,15 @@ export const App: React.FC = () => {
                   window.speechSynthesis.cancel();
                 }
                 setChemistrySubTab('runs');
+                handleExplainerContextChange(
+                  buildChemistryDiscoveriesExplainerContext(savedExperiments.length, Date.now())
+                );
               }
             }}
             id="subnav-runs"
           >
             <span>📓</span> My Discoveries
-            {labRuns.length > 0 && (
+            {savedExperiments.length > 0 && (
               <span
                 style={{
                   background: 'var(--sticky-yellow)',
@@ -265,7 +345,7 @@ export const App: React.FC = () => {
                   marginLeft: 4,
                 }}
               >
-                {labRuns.length}
+                {savedExperiments.length}
               </span>
             )}
           </button>
@@ -288,9 +368,8 @@ export const App: React.FC = () => {
             {/* Sub-Tab 0: Interactive Drag-and-Drop Workplane */}
             {chemistrySubTab === 'workplane' && (
               <WorkplaneLab
-                onSaveRun={(title, details, tag) => {
-                  handleSaveRun(title, details, tag);
-                }}
+                onSaveExperiment={handleSaveExperiment}
+                restoredExperiment={restoredExperiment?.type === 'chemistry' && restoredExperiment.parameters.mode === 'workplane' ? restoredExperiment : null}
                 onContextChange={handleExplainerContextChange}
               />
             )}
@@ -303,124 +382,190 @@ export const App: React.FC = () => {
                 onAddToReactor={(_el) => {
                   setChemistrySubTab('reactor');
                 }}
+                onContextChange={handleExplainerContextChange}
               />
             )}
 
             {/* Sub-Tab 2: Elemental Synthesis Reactor */}
             {chemistrySubTab === 'reactor' && (
               <SynthesisReactor
-                onSaveCompoundExperiment={(title, eq, _formula) => {
-                  handleSaveRun(title, eq, 'Synthesis');
-                }}
+                onSaveExperiment={handleSaveExperiment}
+                restoredExperiment={restoredExperiment?.type === 'chemistry' && restoredExperiment.parameters.mode === 'synthesis' ? restoredExperiment : null}
+                onContextChange={handleExplainerContextChange}
               />
             )}
 
             {/* Sub-Tab 3: Aqueous Reaction & Titration Vessel */}
             {chemistrySubTab === 'aqueous' && (
               <ChemistryView
-                onSaveExperiment={(exp) => {
-                  handleSaveRun(exp.title, exp.description || '', 'Aqueous');
-                }}
+                onSaveExperiment={handleSaveExperiment}
+                restoredExperiment={restoredExperiment?.type === 'chemistry' && restoredExperiment.parameters.mode === 'aqueous' ? restoredExperiment : null}
                 onContextChange={handleExplainerContextChange}
               />
             )}
 
             {/* Sub-Tab 4: Chemical Equation Validator */}
-            {chemistrySubTab === 'validator' && <EquationValidatorView />}
+            {chemistrySubTab === 'validator' && (
+              <EquationValidatorView onContextChange={handleExplainerContextChange} />
+            )}
 
             {/* Sub-Tab 5: Lab Experiment History */}
             {chemistrySubTab === 'runs' && (
               <div className="lab-card" style={{ padding: 22 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
                   <div>
-                    <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>📓 My Science Discoveries ({labRuns.length})</h2>
+                    <h2 style={{ fontSize: 22, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>📓 My Science Discoveries ({savedExperiments.length})</h2>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 700 }}>
-                      All the wonderful compounds and colorful reactions you have discovered!
+                      All canonical experiments saved to offline-first local storage. Click "Restore" to reload parameters and re-simulate!
                     </p>
                   </div>
 
-                  {labRuns.length > 0 && (
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      className="lab-btn lab-btn-danger"
-                      onClick={handleClearAllRuns}
+                      className="lab-btn lab-btn-primary"
+                      onClick={() => setShowImportDialog(true)}
+                      id="btn-import-simxpack"
+                      title="Import a .simxpack portable simulation package"
                     >
-                      Clear All Discoveries
+                      📥 Import .simxpack
                     </button>
-                  )}
+                    {savedExperiments.length > 0 && (
+                      <button
+                        type="button"
+                        className="lab-btn lab-btn-danger"
+                        onClick={handleClearAllExperiments}
+                      >
+                        Clear All Discoveries
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {labRuns.length === 0 ? (
+                {actionNotice && (
+                  <div style={{ background: 'rgba(34, 197, 94, 0.15)', border: '1.5px solid #22c55e', color: '#4ade80', padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 700 }}>
+                    {actionNotice}
+                  </div>
+                )}
+
+                {storageError && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', padding: '10px 14px', borderRadius: 8, color: '#fca5a5', marginBottom: 14, fontSize: 13 }}>
+                    ⚠️ Storage Notice: {storageError}
+                  </div>
+                )}
+
+                {savedExperiments.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '44px 16px', color: 'var(--status-neutral)', fontFamily: 'var(--font-display)', fontSize: 16 }}>
-                    🎈 No discoveries recorded yet! Try mixing elements in the <strong>Mix & React Lab</strong> or pouring colorful solutions in <strong>Color Titration</strong> to save your first experiment!
+                    🎈 No discoveries recorded yet! Try simulating in <strong>Mix & React</strong>, <strong>Color Titration</strong>, <strong>Probability</strong>, or <strong>Projectile</strong> to save your first experiment!
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {labRuns.map((run) => (
-                      <div
-                        key={run.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '12px 16px',
-                          borderRadius: 6,
-                          background: 'var(--lab-surface)',
-                          border: '1.5px solid var(--wood-frame)',
-                        }}
-                      >
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span
-                              className="lab-badge"
-                              style={{
-                                background:
-                                  run.tag === 'Synthesis'
-                                    ? '#eff6ff'
-                                    : run.tag === 'Probability'
-                                    ? '#fdf2f8'
-                                    : run.tag === 'Physics' || run.tag === 'Projectile'
-                                    ? '#f5f3ff'
-                                    : '#ecfdf5',
-                                color:
-                                  run.tag === 'Synthesis'
-                                    ? '#1d4ed8'
-                                    : run.tag === 'Probability'
-                                    ? '#9d174d'
-                                    : run.tag === 'Physics' || run.tag === 'Projectile'
-                                    ? '#6d28d9'
-                                    : '#065f46',
-                                border: `1px solid ${
-                                  run.tag === 'Synthesis'
-                                    ? '#bfdbfe'
-                                    : run.tag === 'Probability'
-                                    ? '#fbcfe8'
-                                    : run.tag === 'Physics' || run.tag === 'Projectile'
-                                    ? '#ddd6fe'
-                                    : '#a7f3d0'
-                                }`,
-                              }}
-                            >
-                              {run.tag}
-                            </span>
-                            <strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>{run.title}</strong>
-                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.timestamp}</span>
+                    {savedExperiments.map((run) => {
+                      const tagLabel = run.type === 'chemistry'
+                        ? (run.parameters.mode === 'workplane' ? 'Synthesis' : (run.parameters.mode === 'synthesis' ? 'Synthesis' : 'Aqueous'))
+                        : run.type === 'probability'
+                        ? 'Probability'
+                        : 'Physics';
+
+                      return (
+                        <div
+                          key={run.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '12px 16px',
+                            borderRadius: 6,
+                            background: 'var(--lab-surface)',
+                            border: '1.5px solid var(--wood-frame)',
+                            flexWrap: 'wrap',
+                            gap: 12,
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span
+                                className="lab-badge"
+                                style={{
+                                  background:
+                                    tagLabel === 'Synthesis'
+                                      ? '#eff6ff'
+                                      : tagLabel === 'Probability'
+                                      ? '#fdf2f8'
+                                      : tagLabel === 'Physics'
+                                      ? '#f5f3ff'
+                                      : '#ecfdf5',
+                                  color:
+                                    tagLabel === 'Synthesis'
+                                      ? '#1d4ed8'
+                                      : tagLabel === 'Probability'
+                                      ? '#9d174d'
+                                      : tagLabel === 'Physics'
+                                      ? '#6d28d9'
+                                      : '#065f46',
+                                  border: `1px solid ${
+                                    tagLabel === 'Synthesis'
+                                      ? '#bfdbfe'
+                                      : tagLabel === 'Probability'
+                                      ? '#fbcfe8'
+                                      : tagLabel === 'Physics'
+                                      ? '#ddd6fe'
+                                      : '#a7f3d0'
+                                  }`,
+                                }}
+                              >
+                                {tagLabel}
+                              </span>
+                              <strong style={{ fontSize: 15, color: 'var(--text-primary)' }}>{run.title}</strong>
+                              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                {new Date(run.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                              {run.description}
+                            </div>
                           </div>
-                          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-                            {run.details}
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              className="lab-btn lab-btn-primary"
+                              style={{ fontSize: 12, padding: '5px 12px' }}
+                              onClick={() => handleRestoreExperiment(run)}
+                              title="Reload parameters into active simulation"
+                            >
+                              ▶ Restore
+                            </button>
+                            <button
+                              type="button"
+                              className="lab-btn lab-btn-secondary"
+                              style={{ fontSize: 12, padding: '5px 10px' }}
+                              onClick={() => handleExportExperiment(run)}
+                              title="Download portable .simxpack package"
+                            >
+                              📦 Export
+                            </button>
+                            <button
+                              type="button"
+                              className="lab-btn lab-btn-secondary"
+                              style={{ fontSize: 12, padding: '5px 10px' }}
+                              onClick={() => setShareTargetExperiment(run)}
+                              title="Share file with colleagues"
+                            >
+                              🔗 Share
+                            </button>
+                            <button
+                              type="button"
+                              className="lab-btn lab-btn-danger"
+                              style={{ fontSize: 12, padding: '5px 10px' }}
+                              onClick={() => handleDeleteExperiment(run.id)}
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
-
-                        <button
-                          type="button"
-                          className="lab-btn lab-btn-secondary"
-                          style={{ fontSize: 12, padding: '4px 10px' }}
-                          onClick={() => handleDeleteRun(run.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -428,18 +573,29 @@ export const App: React.FC = () => {
           </>
         )}
 
+        {/* Modal Dialogs for Local Sharing & Import */}
+        {shareTargetExperiment && (
+          <ShareDialog
+            experiment={shareTargetExperiment}
+            onClose={() => setShareTargetExperiment(null)}
+          />
+        )}
+
+        {showImportDialog && (
+          <ImportDialog
+            existingExperiments={savedExperiments}
+            onImportComplete={handleImportComplete}
+            onClose={() => setShowImportDialog(false)}
+          />
+        )}
+
         {/* ===================================================================
             2. PROBABILITY DISCIPLINE (Independent Probability Experiments)
             =================================================================== */}
         {activeDiscipline === 'probability' && (
           <ProbabilityView
-            onSaveExperiment={(exp) => {
-              handleSaveRun(
-                exp.title,
-                `${exp.description || 'Probability test'} • Trials: ${exp.parameters.trials.toLocaleString()} • Seed: ${exp.parameters.seed}`,
-                'Probability'
-              );
-            }}
+            onSaveExperiment={handleSaveExperiment}
+            restoredExperiment={restoredExperiment?.type === 'probability' ? restoredExperiment : null}
             onContextChange={handleExplainerContextChange}
           />
         )}
@@ -449,13 +605,8 @@ export const App: React.FC = () => {
             =================================================================== */}
         {activeDiscipline === 'physics' && (
           <ProjectileView
-            onSaveExperiment={(exp) => {
-              handleSaveRun(
-                exp.title,
-                `Launch: ${exp.parameters.initialSpeed} m/s @ ${exp.parameters.angleDeg}° • g = ${exp.parameters.gravity} m/s² • Range: ${exp.results.range.toFixed(1)}m`,
-                'Physics'
-              );
-            }}
+            onSaveExperiment={handleSaveExperiment}
+            restoredExperiment={restoredExperiment?.type === 'projectile' ? restoredExperiment : null}
             onContextChange={handleExplainerContextChange}
           />
         )}

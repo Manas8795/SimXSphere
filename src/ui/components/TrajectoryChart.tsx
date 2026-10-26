@@ -45,9 +45,12 @@ export const TrajectoryChart: React.FC<TrajectoryChartProps> = ({
 
   // Reset animation when parameters change
   useEffect(() => {
-    setAnimIndex(0);
-    setIsPlaying(true);
     lastTimeRef.current = null;
+    const frameId = requestAnimationFrame(() => {
+      setAnimIndex(0);
+      setIsPlaying(true);
+    });
+    return () => cancelAnimationFrame(frameId);
   }, [results, v0, angleDeg, gravity]);
 
   // RequestAnimationFrame Loop for smooth, physical motion

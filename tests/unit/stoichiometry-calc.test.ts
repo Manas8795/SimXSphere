@@ -59,4 +59,40 @@ describe('calculateLimitingReagent', () => {
     expect(res?.theoreticalYieldGrams).toBeCloseTo(116.88, 1);
     expect(res?.conservationOfMassCheck.isConserved).toBe(true);
   });
+
+  it('rejects negative, non-finite, and invalid reactant inputs with descriptive errors', () => {
+    const validProduct = { formula: 'H2O', coefficient: 2, molarMass: 18.015 };
+
+    // Negative mass
+    expect(() =>
+      calculateLimitingReagent(
+        [{ symbol: 'H2', name: 'Hydrogen', coefficient: 2, molarMass: 2.016, massGrams: -4.0 }],
+        validProduct
+      )
+    ).toThrow(/Invalid reactant mass/i);
+
+    // Non-finite mass (NaN)
+    expect(() =>
+      calculateLimitingReagent(
+        [{ symbol: 'H2', name: 'Hydrogen', coefficient: 2, molarMass: 2.016, massGrams: NaN }],
+        validProduct
+      )
+    ).toThrow(/Invalid reactant mass/i);
+
+    // Zero or negative molar mass
+    expect(() =>
+      calculateLimitingReagent(
+        [{ symbol: 'H2', name: 'Hydrogen', coefficient: 2, molarMass: 0, massGrams: 4.0 }],
+        validProduct
+      )
+    ).toThrow(/Invalid molar mass/i);
+
+    // Invalid product molar mass
+    expect(() =>
+      calculateLimitingReagent(
+        [{ symbol: 'H2', name: 'Hydrogen', coefficient: 2, molarMass: 2.016, massGrams: 4.0 }],
+        { formula: 'H2O', coefficient: 2, molarMass: -10 }
+      )
+    ).toThrow(/Invalid product molar mass/i);
+  });
 });

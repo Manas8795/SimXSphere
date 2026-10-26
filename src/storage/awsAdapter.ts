@@ -8,6 +8,13 @@
 import type { StorageAdapter, StoragePackageItem } from './StorageAdapter';
 import type { ExperimentRun, PackageMetadata } from '../core/experiment/types';
 
+export class AwsConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AwsConfigurationError';
+  }
+}
+
 export interface AwsAdapterConfig {
   apiBaseUrl: string;
   getIdToken: () => Promise<string | null>;
@@ -20,6 +27,11 @@ export class AwsStorageAdapter implements StorageAdapter {
   private getIdToken: () => Promise<string | null>;
 
   constructor(config: AwsAdapterConfig) {
+    if (!config.apiBaseUrl || !config.apiBaseUrl.trim()) {
+      throw new AwsConfigurationError(
+        'AWS API base URL is not configured. Cloud mode requires a valid API Gateway endpoint.'
+      );
+    }
     this.apiBaseUrl = config.apiBaseUrl.replace(/\/+$/, '');
     this.getIdToken = config.getIdToken;
   }

@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PERIODIC_TABLE, type ChemicalElement, type ElementCategory } from '../chemistry-data/elements';
+import { buildPeriodicTableExplainerContext } from '../core/explainer/context-builders/chemistryContext';
+import type { SimulationExplainerContext } from '../core/explainer/types';
 
 interface PeriodicTableProps {
   selectedElement: ChemicalElement | null;
   onSelectElement: (element: ChemicalElement) => void;
   onAddToReactor?: (element: ChemicalElement) => void;
   activeReactorSymbols?: string[];
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
 export const PeriodicTable: React.FC<PeriodicTableProps> = ({
@@ -13,7 +16,11 @@ export const PeriodicTable: React.FC<PeriodicTableProps> = ({
   onSelectElement,
   onAddToReactor,
   activeReactorSymbols = [],
+  onContextChange,
 }) => {
+  useEffect(() => {
+    onContextChange?.(buildPeriodicTableExplainerContext(selectedElement, Date.now()));
+  }, [selectedElement, onContextChange]);
   // Category legend mappings
   const categories: { key: ElementCategory; label: string; bg: string; text: string }[] = [
     { key: 'alkali-metal', label: 'Alkali Metals', bg: 'var(--cat-alkali)', text: 'var(--cat-alkali-text)' },

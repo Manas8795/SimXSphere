@@ -52,6 +52,26 @@ export function calculateLimitingReagent(
     return null;
   }
 
+  // Strict validation: reject non-finite, negative mass, non-positive molar mass/coefficients
+  for (const r of reactants) {
+    if (!Number.isFinite(r.massGrams) || r.massGrams < 0) {
+      throw new Error(`Invalid reactant mass: ${r.massGrams}g for ${r.name || r.symbol}. Mass must be a non-negative finite number.`);
+    }
+    if (!Number.isFinite(r.molarMass) || r.molarMass <= 0) {
+      throw new Error(`Invalid molar mass: ${r.molarMass} g/mol for ${r.name || r.symbol}. Molar mass must be positive.`);
+    }
+    if (!Number.isFinite(r.coefficient) || r.coefficient <= 0) {
+      throw new Error(`Invalid reaction coefficient: ${r.coefficient} for ${r.name || r.symbol}. Coefficient must be positive.`);
+    }
+  }
+
+  if (!Number.isFinite(product.molarMass) || product.molarMass <= 0) {
+    throw new Error(`Invalid product molar mass: ${product.molarMass} g/mol. Molar mass must be positive.`);
+  }
+  if (!Number.isFinite(product.coefficient) || product.coefficient <= 0) {
+    throw new Error(`Invalid product coefficient: ${product.coefficient}. Coefficient must be positive.`);
+  }
+
   // Calculate moles of each reactant available
   const reactantData = reactants.map((r) => {
     const molesAvailable = r.molarMass > 0 ? r.massGrams / r.molarMass : 0;

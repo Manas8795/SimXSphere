@@ -25,6 +25,15 @@ describe('AWS Storage Adapter Mock Cloud Tests', () => {
     vi.restoreAllMocks();
   });
 
+  it('rejects initialization when apiBaseUrl is empty or missing', () => {
+    expect(() => {
+      new AwsStorageAdapter({
+        apiBaseUrl: '',
+        getIdToken: async () => null,
+      });
+    }).toThrow(/AWS API base URL is not configured/);
+  });
+
   it('rejects requests when user is not authenticated', async () => {
     const unauthenticatedAdapter = new AwsStorageAdapter({
       apiBaseUrl: mockApiBaseUrl,

@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   synthesizeCompoundFromElements,
   type SynthesisResult,
 } from '../chemistry-engine/compound-builder';
 import { PERIODIC_TABLE } from '../chemistry-data/elements';
+import type { ChemistryExperiment } from '../core/experiment/types';
+import { buildSynthesisReactorExplainerContext } from '../core/explainer/context-builders/chemistryContext';
+import type { SimulationExplainerContext } from '../core/explainer/types';
 
 export interface ReactorElementSlot {
   symbol: string;
@@ -12,11 +15,17 @@ export interface ReactorElementSlot {
 
 interface SynthesisReactorProps {
   onSaveCompoundExperiment?: (title: string, equation: string, formula: string) => void;
+  onSaveExperiment?: (exp: ChemistryExperiment) => void;
+  restoredExperiment?: ChemistryExperiment | null;
   externalActiveElements?: string[];
+  onContextChange?: (context: SimulationExplainerContext) => void;
 }
 
 export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
   onSaveCompoundExperiment,
+  onSaveExperiment,
+  restoredExperiment,
+  onContextChange,
 }) => {
   // Elements placed in the reactor
   const [slots, setSlots] = useState<ReactorElementSlot[]>([
@@ -33,6 +42,24 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
 
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+
+  useEffect(() => {
+    onContextChange?.(buildSynthesisReactorExplainerContext(slots, synthesisOutput, Date.now()));
+  }, [slots, synthesisOutput, onContextChange]);
+
+  // Restore experiment when restoredExperiment prop changes
+  useEffect(() => {
+    if (restoredExperiment && restoredExperiment.type === 'chemistry' && restoredExperiment.parameters.mode === 'synthesis') {
+      const reactants = restoredExperiment.parameters.reactants || [];
+      if (reactants.length > 0) {
+        queueMicrotask(() => {
+          const restoredSlots = reactants.map((r) => ({ symbol: r.formula, ratio: r.ratio || 1 }));
+          setSlots(restoredSlots);
+          setSynthesisOutput(synthesizeCompoundFromElements(restoredSlots));
+        });
+      }
+    }
+  }, [restoredExperiment]);
 
   // Quick preset loader
   const presets = [
@@ -97,15 +124,46 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
 
   const handleSave = () => {
     if (!synthesisOutput.success || !synthesisOutput.compound) return;
+    const compound = synthesisOutput.compound;
+    if (onSaveExperiment) {
+      const exp: ChemistryExperiment = {
+        schemaVersion: 1,
+        id: crypto.randomUUID(),
+        type: 'chemistry',
+        title: `Synthesis: ${compound.formula} (${compound.commonName})`,
+        description: `${compound.synthesisEquation} • ${compound.bondType} Bond`,
+        createdAt: new Date().toISOString(),
+        appVersion: '1.0.0',
+        parameters: {
+          mode: 'synthesis',
+          reactants: (compound.constituentAtoms || []).map((a) => ({
+            formula: a.symbol,
+            name: a.symbol,
+            ratio: a.count,
+          })),
+        },
+        results: {
+          reactionType: 'Synthesis Reaction',
+          balancedEquation: compound.synthesisEquation,
+          products: [compound.formula],
+          isConserved: true,
+          enthalpyKj: compound.energyChangeKj ?? null,
+          isCurated: true,
+          provenance: 'SimXSphere Synthesis Engine',
+          notes: compound.description,
+        },
+      };
+      onSaveExperiment(exp);
+    }
     if (onSaveCompoundExperiment) {
       onSaveCompoundExperiment(
         `Synthesis: ${synthesisOutput.compound.formula} (${synthesisOutput.compound.commonName})`,
         synthesisOutput.compound.synthesisEquation,
         synthesisOutput.compound.formula
       );
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
     }
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const compound = synthesisOutput.compound;

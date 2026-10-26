@@ -26,7 +26,7 @@ export interface LabChemicalItem {
   defaultGrams?: number;   // Default grams (if solid)
   molarMass: number;       // g/mol
   ph: number;
-  hazardBadge: 'Corrosive' | 'Flammable' | 'Oxidizer' | 'Irritant' | 'Safe';
+  hazardBadge: 'Corrosive' | 'Flammable' | 'Oxidizer' | 'Irritant' | 'Safe' | 'Minimal Hazard';
   description: string;
   molecular3D: {
     geometryName: string;
@@ -230,7 +230,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultGrams: 5.0,
     molarMass: 55.85,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Minimal Hazard',
     description: 'Transition metal powder. Reacts with sulfur powder on heating to form FeS.',
     molecular3D: {
       geometryName: 'Metallic Sphere',
@@ -253,7 +253,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultGrams: 5.0,
     molarMass: 32.06,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Irritant',
     description: 'Bright yellow crystalline non-metal powder. Direct synthesis with iron forms black FeS.',
     molecular3D: {
       geometryName: 'Crown Octasulfur',
@@ -279,7 +279,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultGrams: 5.0,
     molarMass: 65.38,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Minimal Hazard',
     description: 'Silvery active metal. Reacts briskly with hydrochloric acid evolving flammable H₂ gas.',
     molecular3D: {
       geometryName: 'Hexagonal Close Packed',
@@ -326,7 +326,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultMolarity: 55.5,
     molarMass: 18.015,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Minimal Hazard',
     description: 'Pure neutral laboratory solvent. Serves as aqueous reaction medium.',
     molecular3D: {
       geometryName: 'Bent (104.5°)',
@@ -430,7 +430,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultGrams: 5.0,
     molarMass: 84.01,
     ph: 8.3,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Minimal Hazard',
     description: 'Baking soda. Rapidly releases fizzy CO₂ gas when combined with acids.',
     molecular3D: {
       geometryName: 'Trigonal Bicarbonate',
@@ -458,7 +458,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultMolarity: 0.5,
     molarMass: 166.0,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Irritant',
     description: 'Clear iodide solution. Yields radiant canary-yellow PbI₂ precipitate with lead salts.',
     molecular3D: {
       geometryName: 'Diatomic Ionic',
@@ -555,7 +555,7 @@ export const LAB_CHEMICALS: LabChemicalItem[] = [
     defaultMolarity: 0.02,
     molarMass: 200.0,
     ph: 7.0,
-    hazardBadge: 'Safe',
+    hazardBadge: 'Minimal Hazard',
     description: 'Broad-spectrum indicator solution: Red in strong acids, green at pH 7, purple in strong bases.',
     molecular3D: {
       geometryName: 'Conjugated Dye System',

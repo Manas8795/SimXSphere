@@ -11,13 +11,20 @@ import { exportProbabilityCsv } from '../../core/simxpack/csv';
 import { serializeCanonicalJson } from '../../core/experiment/serialize';
 import { buildProbabilityExplainerContext } from '../../core/explainer/context-builders/probabilityContext';
 import type { SimulationExplainerContext } from '../../core/explainer/types';
+import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
+import { ShareDialog } from '../components/sharing/ShareDialog';
 
 interface ProbabilityViewProps {
   onSaveExperiment: (experiment: ProbabilityExperiment) => void;
   onContextChange?: (context: SimulationExplainerContext) => void;
+  restoredExperiment?: ProbabilityExperiment | null;
 }
 
-export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperiment, onContextChange }) => {
+export const ProbabilityView: React.FC<ProbabilityViewProps> = ({
+  onSaveExperiment,
+  onContextChange,
+  restoredExperiment,
+}) => {
   const [kind, setKind] = useState<'coin' | 'die'>('coin');
   const [sides, setSides] = useState<number>(2);
   const [trials, setTrials] = useState<number>(1000);
@@ -30,6 +37,7 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
   const [lastOutcome, setLastOutcome] = useState<number>(0);
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(false);
   const streamIntervalRef = useRef<number | null>(null);
+  const prngStreamRef = useRef<(() => number) | null>(null);
 
   // Active experiment state
   const [experiment, setExperiment] = useState<ProbabilityExperiment>(() => {
@@ -53,9 +61,26 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
     };
   });
 
+  // Restore experiment when restoredExperiment prop changes
+  useEffect(() => {
+    if (restoredExperiment && restoredExperiment.type === 'probability') {
+      queueMicrotask(() => {
+        setKind(restoredExperiment.parameters.kind);
+        setSides(restoredExperiment.parameters.sides);
+        setTrials(restoredExperiment.parameters.trials);
+        setSeed(restoredExperiment.parameters.seed);
+        setTitle(restoredExperiment.title);
+        setDescription(restoredExperiment.description || '');
+        setExperiment(restoredExperiment);
+        prngStreamRef.current = null;
+      });
+    }
+  }, [restoredExperiment]);
+
   const [execTimeMs, setExecTimeMs] = useState<number>(0);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [shareExperiment, setShareExperiment] = useState<ProbabilityExperiment | null>(null);
 
   // Notify companion of active context
   useEffect(() => {
@@ -87,28 +112,37 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
   };
 
   const handleNewSeed = () => {
+    prngStreamRef.current = null;
     setSeed(generateRandomSeed());
   };
 
   // Perform a single visual flip or roll
   const handleSingleTrial = () => {
     setIsFlipping(true);
-    const rand = createMulberry32(Math.floor(Math.random() * 4294967296));
-    const outcome = Math.floor(rand() * sides);
+    if (!prngStreamRef.current) {
+      prngStreamRef.current = createMulberry32(seed);
+    }
+    const outcome = Math.floor(prngStreamRef.current() * sides);
 
     setTimeout(() => {
       setLastOutcome(outcome);
       setIsFlipping(false);
 
-      // Add 1 to counts
+      // Add 1 to counts and keep parameters.trials and results.total in exact sync
       setExperiment((prev) => {
+        const newTotal = prev.results.total + 1;
         const newCounts = [...prev.results.counts];
         newCounts[outcome] = (newCounts[outcome] || 0) + 1;
+        setTrials(newTotal);
         return {
           ...prev,
+          parameters: {
+            ...prev.parameters,
+            trials: newTotal,
+          },
           results: {
             counts: newCounts,
-            total: prev.results.total + 1,
+            total: newTotal,
           },
         };
       });
@@ -124,11 +158,15 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
     }
 
     setIsLiveStreaming(true);
-    const rand = createMulberry32(seed);
+    if (!prngStreamRef.current) {
+      prngStreamRef.current = createMulberry32(seed);
+    }
+    const rand = prngStreamRef.current;
 
     streamIntervalRef.current = window.setInterval(() => {
       setExperiment((prev) => {
         const batchSize = 10;
+        const newTotal = prev.results.total + batchSize;
         const newCounts = [...prev.results.counts];
         let lastOne = 0;
         for (let b = 0; b < batchSize; b++) {
@@ -136,11 +174,16 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
           newCounts[lastOne] = (newCounts[lastOne] || 0) + 1;
         }
         setLastOutcome(lastOne);
+        setTrials(newTotal);
         return {
           ...prev,
+          parameters: {
+            ...prev.parameters,
+            trials: newTotal,
+          },
           results: {
             counts: newCounts,
-            total: prev.results.total + batchSize,
+            total: newTotal,
           },
         };
       });
@@ -149,6 +192,7 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
 
   // Run full batch simulation
   const handleRun = () => {
+    prngStreamRef.current = null;
     if (isLiveStreaming) {
       if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
       setIsLiveStreaming(false);
@@ -224,6 +268,15 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
     a.download = `experiment-${experiment.id.slice(0, 8)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportSimXPack = async () => {
+    const { filename, jsonString } = await createSingleSimXPackage(experiment);
+    triggerFileDownload(filename, jsonString);
+  };
+
+  const handleOpenShare = () => {
+    setShareExperiment(experiment);
   };
 
   const metrics = calculateDerivedProbabilityMetrics(experiment.results, experiment.parameters.sides);
@@ -521,6 +574,24 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
             </button>
             <button
               type="button"
+              id="export-probability-simxpack-btn"
+              className="btn btn-secondary"
+              onClick={handleExportSimXPack}
+              title="Export as portable offline .simxpack file"
+            >
+              📦 Export .simxpack
+            </button>
+            <button
+              type="button"
+              id="share-probability-btn"
+              className="btn btn-secondary"
+              onClick={handleOpenShare}
+              title="Share simulation package"
+            >
+              🔗 Share
+            </button>
+            <button
+              type="button"
               id="download-csv-btn"
               className="btn btn-secondary"
               onClick={handleDownloadCsv}
@@ -583,6 +654,13 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({ onSaveExperime
           </table>
         </div>
       </div>
+
+      {shareExperiment && (
+        <ShareDialog
+          experiment={shareExperiment}
+          onClose={() => setShareExperiment(null)}
+        />
+      )}
     </div>
   );
 };
