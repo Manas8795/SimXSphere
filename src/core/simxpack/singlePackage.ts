@@ -121,35 +121,29 @@ export async function parseAndValidateSinglePackage(
 
   const record = parsed as Record<string, unknown>;
 
-  // Check format: accept 'simxsphere-single' or direct experiment run with schemaVersion 1
+  // Check format: must strictly be 'simxsphere-single'
   if (record.format !== SIMXPACK_SINGLE_FORMAT) {
-    // If it's a raw canonical ExperimentRun object, adapt gracefully
-    if (record.schemaVersion === 1 && typeof record.type === 'string' && record.parameters) {
-      const expValidation = validateExperimentRun(record);
-      if (expValidation.valid) {
-        const canonical = serializeCanonicalJson(record);
-        const checksum = await computeSha256(canonical);
-        const adapted: SimXSinglePackage = {
-          format: SIMXPACK_SINGLE_FORMAT,
-          schemaVersion: 1,
-          exportedAt: new Date().toISOString(),
-          appVersion: (record.appVersion as string) || '1.0.0',
-          experiment: record as unknown as ExperimentRun,
-          provenance: {
-            engine: 'SimXSphere Local Engine (Direct Import)',
-            checksum,
-          },
-        };
-        return { valid: true, package: adapted, errors: [], checksumValid: true };
-      }
-    }
     errors.push(`Invalid format identifier "${String(record.format)}"; expected "${SIMXPACK_SINGLE_FORMAT}"`);
   }
 
-  if (record.schemaVersion !== 1) {
+  // Schema version must be 1
+  if (record.schemaVersion !== SIMXPACK_SCHEMA_VERSION) {
     errors.push(`Unsupported schema version "${String(record.schemaVersion)}"; expected 1`);
   }
 
+  // Provenance and SHA-256 Checksum contract for schema v1
+  if (!record.provenance || typeof record.provenance !== 'object') {
+    errors.push('Missing mandatory provenance metadata in package');
+  } else {
+    const prov = record.provenance as Record<string, unknown>;
+    if (typeof prov.checksum !== 'string' || prov.checksum.trim().length === 0) {
+      errors.push('Missing mandatory SHA-256 checksum in package provenance');
+    } else if (!/^[a-f0-9]{64}$/.test(prov.checksum)) {
+      errors.push('Malformed checksum: expected 64-character lowercase hexadecimal SHA-256 digest');
+    }
+  }
+
+  // Experiment payload
   if (!record.experiment || typeof record.experiment !== 'object') {
     errors.push('Missing experiment payload in package');
   } else {
@@ -160,26 +154,30 @@ export async function parseAndValidateSinglePackage(
   }
 
   if (errors.length > 0) {
-    return { valid: false, errors };
+    return { valid: false, errors, checksumValid: false };
   }
 
   const validPkg = record as unknown as SimXSinglePackage;
 
-  // Verify SHA-256 checksum if present
-  let checksumValid = true;
-  if (validPkg.provenance?.checksum) {
-    const computed = await computeSha256(serializeCanonicalJson(validPkg.experiment));
-    checksumValid = computed === validPkg.provenance.checksum;
-    if (!checksumValid) {
-      errors.push('Package SHA-256 checksum mismatch (file may have been modified or corrupted)');
-    }
+  // Cryptographic integrity verification: recompute digest over canonical JSON of experiment
+  const canonical = serializeCanonicalJson(validPkg.experiment);
+  const computed = await computeSha256(canonical);
+  const checksumMatches = computed.toLowerCase() === validPkg.provenance.checksum.toLowerCase();
+
+  if (!checksumMatches) {
+    errors.push('Package SHA-256 checksum mismatch (file may have been modified or corrupted)');
+    return {
+      valid: false,
+      errors,
+      checksumValid: false,
+    };
   }
 
   return {
-    valid: errors.length === 0,
-    package: errors.length === 0 ? validPkg : undefined,
-    errors,
-    checksumValid,
+    valid: true,
+    package: validPkg,
+    errors: [],
+    checksumValid: true,
   };
 }
 

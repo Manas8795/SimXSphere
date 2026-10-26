@@ -6,9 +6,9 @@ This document specifies the offline, local-first simulation workflow for SimXSph
 
 ## 1. Local-First Architecture Overview
 
-SimXSphere is designed to operate completely offline. Every simulation run, parameter set, and scientific output can be:
-- Saved into the browser's persistent `localStorage` repository (`simxsphere_experiments_v1`).
-- Exported as a portable, standardized `.simxpack` file.
+SimXSphere operates completely offline. Every simulation run, parameter set, and scientific output can be:
+- Saved into the browser's persistent `localStorage` repository (`simxsphere:experiments`).
+- Exported as a portable, standardized `.simxpack` package.
 - Imported from external `.simxpack` files or legacy `.zip` studio bundles.
 - Shared peer-to-peer using file transfer (e.g., AirDrop, email, messaging, flash drive).
 
@@ -23,9 +23,9 @@ Single-experiment export and import is universally supported across all three co
 
 | Simulation Domain | Export Filename Pattern | Stored Parameters | Validation Rules |
 | :--- | :--- | :--- | :--- |
-| **Chemistry** (`chemistry`) | `simxsphere-chemistry-<slug>-<yyyy-mm-dd>.simxpack` | Reactants, volumes (mL), concentrations (M), thermal conditions, solvent | Reagent validity, stoichiometric conservation, volume bounds |
-| **Probability** (`probability`) | `simxsphere-probability-<slug>-<yyyy-mm-dd>.simxpack` | Kind (`coin` \| `die`), face count (2–20), trials (1–100,000), seed | PRNG reproducibility, count conservation ($\sum \text{counts} = \text{total}$) |
-| **Projectile Motion** (`projectile`) | `simxsphere-projectile-<slug>-<yyyy-mm-dd>.simxpack` | Launch speed ($v_0$), angle ($\theta$), gravity ($g$) | $v_0 \in (0, 500]$ m/s, $\theta \in [0, 90]^\circ$, $g \in (0, 100]$ m/s², 101 trajectory steps |
+| **Chemistry** (`chemistry`) | `simxsphere-chemistry-<slug>-<yyyy-mm-dd>.simxpack` | Reactants, volumes (0–1000 mL), concentrations (0–20 M), thermal conditions, solvent | Reagent validity against database, finite positive values, stoichiometric conservation |
+| **Probability** (`probability`) | `simxsphere-probability-<slug>-<yyyy-mm-dd>.simxpack` | Kind (`coin` \| `die`), face count (coin: 2, die: 4–20), trials (1–1,000,000), seed (uint32) | PRNG reproducibility, count non-negativity, sum of counts equals total ($\sum \text{counts} = \text{total} = \text{trials}$) |
+| **Projectile Motion** (`projectile`) | `simxsphere-projectile-<slug>-<yyyy-mm-dd>.simxpack` | Launch speed ($v_0 \in (0, 500]$ m/s), angle ($\theta \in [0, 90]^\circ$), gravity ($g \in [0.1, 30]$ m/s²) | 101 coordinate 2-tuples $[x, y]$, finite non-negative values, physics consistency check with $0.15$ tolerance |
 
 ---
 
@@ -59,22 +59,31 @@ A single simulation package is formatted as canonical UTF-8 JSON with the extens
       "flightTime": 3.6,
       "maxHeight": 15.93,
       "trajectory": [
-        { "x": 0, "y": 0, "t": 0 },
-        "..."
+        [0, 0],
+        [31.85, 15.93],
+        [63.71, 0]
       ]
     }
   },
   "provenance": {
     "engine": "SimXSphere Local Engine",
-    "checksum": "a3f5b7...",
+    "checksum": "a3f5b7468112e431...",
     "notes": "Verified in laboratory run"
   }
 }
 ```
 
+### Checksum & Cryptographic Integrity Contract (Schema v1)
+
+- **Mandatory Field:** `provenance.checksum` is strictly required in schema v1.
+- **Format:** Exactly 64-character lowercase hexadecimal string (`/^[a-f0-9]{64}$/`).
+- **Digest Payload:** Computed using Web Crypto SHA-256 over the canonical, deterministic JSON serialization (`serializeCanonicalJson`) of the `experiment` object.
+- **Verification:** On import, the client independently re-serializes the imported `experiment` to canonical JSON, computes the SHA-256 digest, and requires an exact match.
+- **Security Scope Note:** The SHA-256 checksum detects accidental file corruption, truncated downloads, and manual text tampering against the included digest. It does **not** prove authorship, provide a digital signature, or protect against a malicious actor intentionally generating a new package with a recalculating matching checksum.
+
 ### Privacy Guarantees: What is Included vs Excluded
 
-- **Included:** Simulation type, title, description, creation timestamp, physical and statistical input parameters, analytical output results, trajectory data, and a SHA-256 cryptographic checksum.
+- **Included:** Simulation type, title, description, creation timestamp, physical and statistical input parameters, analytical output results, trajectory coordinate tuples, and the SHA-256 cryptographic checksum.
 - **Excluded:** Zero user login credentials, zero API tokens, zero AI chat/explainer prompt history, zero browser fingerprints, zero access tokens, and zero unrelated discovery records.
 
 ---
@@ -84,7 +93,7 @@ A single simulation package is formatted as canonical UTF-8 JSON with the extens
 ### Saving Locally
 1. Run any simulation (e.g., mix chemical reagents, flip coins, or launch a projectile).
 2. Click **⭐ Save Discovery** (or **💾 Save Run**).
-3. The experiment is committed to `localStorage` under the active session and immediately appears in the **My Science Discoveries** drawer at the bottom of the screen.
+3. The experiment is committed to `localStorage` under `simxsphere:experiments` and immediately appears in the **My Science Discoveries** shelf at the bottom of the screen.
 
 ### Exporting / Downloading a `.simxpack`
 - **From Active Simulation View:** Click **📦 Export .simxpack** directly in the simulation banner or control panel.
@@ -107,12 +116,12 @@ A single simulation package is formatted as canonical UTF-8 JSON with the extens
 3. SimXSphere performs automated verification:
    - **File Size Verification:** Must be $\le 5\text{ MiB}$.
    - **JSON Format & Schema:** Validates `format: "simxsphere-single"` and `schemaVersion: 1`.
-   - **Data Bounds:** Enforces strict domain validation on all parameters and results.
-   - **Cryptographic Integrity:** Computes SHA-256 over the canonical JSON of the experiment and verifies against `provenance.checksum`.
+   - **Data Bounds:** Enforces strict domain validation on all parameters and results (finite numbers, trajectory length 101, valid reagent formulas, count sums).
+   - **Cryptographic Integrity:** Computes SHA-256 over the canonical JSON of the experiment and verifies against mandatory `provenance.checksum`.
 4. **Duplicate Handling:**
    - If an experiment with the same UUID already exists in your local library, SimXSphere flags the collision and offers two choices:
-     - **Import as New Copy:** Generates a fresh UUID and appends `(Imported Copy)` to the title, preserving both versions.
-     - **Replace Existing:** Overwrites the local copy with the imported version.
+     - **Import as new copy (Recommended):** Generates a fresh UUID, sets `metadata.importedFromId` to the source ID, and appends `(Imported Copy)` to the title, preserving both versions.
+     - **Replace existing:** Requires an explicit confirmation checkbox before overwriting the local copy with the imported version.
 5. **Immediate Restoration:**
    - Click **Add to Discoveries** to save the record to your local shelf.
    - Or click **Import & Open Simulation** to instantly switch to that simulation tab with all parameters, reagents, and angles fully restored.
@@ -124,9 +133,11 @@ A single simulation package is formatted as canonical UTF-8 JSON with the extens
 | Error Encountered | Cause | Resolution |
 | :--- | :--- | :--- |
 | **"Package size exceeds maximum allowed limit of 5 MiB"** | File is excessively large or contains extraneous binary data | Only valid text `.simxpack` packages are accepted |
-| **"Package SHA-256 checksum mismatch"** | File content was altered or corrupted after export | Re-export from the original device |
-| **"Unsupported schema version"** | Package was produced by a newer, incompatible format | Ensure SimXSphere is updated to the matching release |
-| **"Initial speed must be positive"** / Range errors | Numerical inputs fall outside realistic physics bounds | Correct parameters in the source simulation |
+| **"Missing mandatory SHA-256 checksum in package provenance"** | Package lacks schema v1 checksum | Ensure the package was exported with schemaVersion 1 |
+| **"Package SHA-256 checksum mismatch"** | File content was altered or corrupted after export | Re-export from the original source device |
+| **"Unsupported schema version"** | Package was produced by an incompatible format version | Ensure SimXSphere is updated to the matching release |
+| **"initialSpeed must be between 0.0001 and 500 m/s"** / Range errors | Numerical inputs fall outside realistic physics bounds | Correct parameters in the source simulation |
+| **"sum of counts does not equal total"** | Probability results counts array is inconsistent with total | Re-run probability trial to generate valid counts |
 
 ---
 

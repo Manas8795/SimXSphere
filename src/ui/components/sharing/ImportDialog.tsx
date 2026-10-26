@@ -19,7 +19,6 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [warningMsg, setWarningMsg] = useState<string | null>(null);
   const [previewPackage, setPreviewPackage] = useState<{
     type: 'single' | 'bundle';
     experiments: ExperimentRun[];
@@ -28,12 +27,13 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
   } | null>(null);
 
   const [conflictChoice, setConflictChoice] = useState<'copy' | 'overwrite'>('copy');
+  const [confirmOverwrite, setConfirmOverwrite] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (file: File) => {
     setErrorMsg(null);
-    setWarningMsg(null);
     setPreviewPackage(null);
+    setConfirmOverwrite(false);
 
     // Size limit check
     if (file.size > MAX_SINGLE_PACKAGE_SIZE_BYTES) {
@@ -62,10 +62,6 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           return;
         }
 
-        if (res.checksumValid === false) {
-          setWarningMsg('⚠️ Note: Package checksum mismatch. The simulation contents are valid, but the file may have been edited.');
-        }
-
         setPreviewPackage({
           type: 'single',
           experiments: [res.package.experiment],
@@ -88,7 +84,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      processFile(e.target.files[0]);
+      const file = e.target.files[0];
+      // Reset input value so re-selecting the same file fires onChange cleanly
+      e.target.value = '';
+      processFile(file);
     }
   };
 
@@ -102,7 +101,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
         return {
           ...exp,
           id: crypto.randomUUID(),
-          title: `${exp.title} (Imported)`,
+          title: `${exp.title} (Imported Copy)`,
           createdAt: new Date().toISOString(),
           metadata: {
             ...exp.metadata,
@@ -229,22 +228,6 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           </div>
         )}
 
-        {warningMsg && (
-          <div
-            style={{
-              padding: '8px 12px',
-              borderRadius: 6,
-              background: 'rgba(234, 179, 8, 0.15)',
-              border: '1px solid #eab308',
-              color: '#facc15',
-              fontSize: 13,
-              marginBottom: 14,
-            }}
-          >
-            {warningMsg}
-          </div>
-        )}
-
         {previewPackage && (
           <div style={{ marginBottom: 16 }}>
             <h3 style={{ fontSize: 15, marginBottom: 8, fontFamily: 'var(--font-display)', color: 'var(--text-secondary)' }}>
@@ -285,10 +268,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                   marginTop: 12,
                 }}
               >
-                <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>
-                  ⚠️ Duplicate ID Detected: An identical experiment is already saved.
+                <strong style={{ fontSize: 13, display: 'block', marginBottom: 6, color: '#fcd34d' }}>
+                  ⚠️ Duplicate ID Detected: An identical experiment is already saved in your library.
                 </strong>
-                <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+                <div style={{ display: 'flex', gap: 16, fontSize: 13, flexWrap: 'wrap', marginBottom: 8 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                     <input
                       type="radio"
@@ -310,6 +293,19 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
                     Replace existing
                   </label>
                 </div>
+
+                {conflictChoice === 'overwrite' && (
+                  <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 6, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#fca5a5', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={confirmOverwrite}
+                        onChange={(e) => setConfirmOverwrite(e.target.checked)}
+                      />
+                      I confirm replacing my existing saved experiment with this imported version.
+                    </label>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -325,14 +321,18 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
               <button
                 type="button"
                 className="lab-btn lab-btn-secondary"
+                disabled={hasDuplicate && conflictChoice === 'overwrite' && !confirmOverwrite}
                 onClick={() => handleConfirmImport(false)}
+                title={hasDuplicate && conflictChoice === 'overwrite' && !confirmOverwrite ? 'Confirm replace above before proceeding' : undefined}
               >
                 📥 Add to Discoveries
               </button>
               <button
                 type="button"
                 className="lab-btn lab-btn-primary"
+                disabled={hasDuplicate && conflictChoice === 'overwrite' && !confirmOverwrite}
                 onClick={() => handleConfirmImport(true)}
+                title={hasDuplicate && conflictChoice === 'overwrite' && !confirmOverwrite ? 'Confirm replace above before proceeding' : undefined}
               >
                 ▶ Import & Open Simulation
               </button>
