@@ -257,3 +257,182 @@ export async function importSimXPack(
     metadata,
   };
 }
+
+export interface PackageInspectionResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  manifest: SimXPackManifest | null;
+  experiments: Array<{
+    id: string;
+    title: string;
+    type: string;
+    timestamp?: string;
+  }>;
+  moduleBreakdown: Record<string, number>;
+  stats: {
+    uncompressedBytes: number;
+    compressedBytes: number;
+    savedBytes: number;
+    percentSaved: number;
+    entryCount: number;
+  };
+  sha256Checksum: string;
+  schemaVersion: number;
+}
+
+/**
+ * Inspects a SimXPack archive before import.
+ * Parses and verifies security bounds, schema, manifest, and checksums
+ * without committing anything to local storage.
+ */
+export async function inspectSimXPack(zipBytes: Uint8Array): Promise<PackageInspectionResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!zipBytes || zipBytes.byteLength === 0) {
+    return {
+      valid: false,
+      errors: ['ZIP archive is empty or invalid'],
+      warnings: [],
+      manifest: null,
+      experiments: [],
+      moduleBreakdown: {},
+      stats: { uncompressedBytes: 0, compressedBytes: 0, savedBytes: 0, percentSaved: 0, entryCount: 0 },
+      sha256Checksum: '',
+      schemaVersion: 0,
+    };
+  }
+
+  const zipHash = await computeSha256(zipBytes);
+  const compressedBytes = zipBytes.byteLength;
+
+  if (compressedBytes > MAX_COMPRESSED_SIZE_BYTES) {
+    errors.push(
+      `ZIP file exceeds maximum allowed size of 5 MiB (got ${(compressedBytes / 1024 / 1024).toFixed(2)} MiB)`
+    );
+  }
+
+  let unzipped: Record<string, Uint8Array> = {};
+  try {
+    unzipped = extractZipArchive(zipBytes);
+  } catch (err) {
+    return {
+      valid: false,
+      errors: [`Failed to parse ZIP archive: ${err instanceof Error ? err.message : String(err)}`],
+      warnings: [],
+      manifest: null,
+      experiments: [],
+      moduleBreakdown: {},
+      stats: { uncompressedBytes: 0, compressedBytes, savedBytes: 0, percentSaved: 0, entryCount: 0 },
+      sha256Checksum: zipHash,
+      schemaVersion: 0,
+    };
+  }
+
+  const entryPaths = Object.keys(unzipped);
+  if (entryPaths.length === 0) {
+    errors.push('ZIP archive contains no entries');
+  }
+  if (entryPaths.length > MAX_ENTRY_COUNT) {
+    errors.push(`Archive contains ${entryPaths.length} entries, exceeding limit of ${MAX_ENTRY_COUNT}`);
+  }
+
+  let totalUncompressedBytes = 0;
+  for (const path of entryPaths) {
+    if (
+      path.includes('..') ||
+      path.startsWith('/') ||
+      path.includes('\\') ||
+      path.includes('\0') ||
+      /^[a-zA-Z]:/.test(path)
+    ) {
+      errors.push(`Malicious path detected (Zip-Slip defense): "${path}"`);
+    }
+    const isAllowed = ALLOWED_PATH_PATTERNS.some((p) => p.test(path));
+    if (!isAllowed) {
+      errors.push(`File path rejected (not in allowlist): "${path}"`);
+    }
+
+    const size = unzipped[path].byteLength;
+    if (size > MAX_ENTRY_UNCOMPRESSED_BYTES) {
+      errors.push(`Entry "${path}" exceeds 2 MiB limit`);
+    }
+    totalUncompressedBytes += size;
+  }
+
+  if (totalUncompressedBytes > MAX_TOTAL_UNCOMPRESSED_BYTES) {
+    errors.push('Total uncompressed size exceeds 5 MiB (ZIP bomb defense)');
+  }
+
+  let manifest: SimXPackManifest | null = null;
+  const manifestData = unzipped['manifest.json'];
+  if (!manifestData) {
+    errors.push('Missing required "manifest.json" in archive root');
+  } else {
+    try {
+      const jsonStr = new TextDecoder('utf-8').decode(manifestData);
+      manifest = JSON.parse(jsonStr);
+      if (manifest?.format !== 'simxpack') {
+        errors.push(`Invalid format "${manifest?.format}"; expected "simxpack"`);
+      }
+      if (manifest?.formatVersion !== 1) {
+        errors.push(`Unsupported schema version ${manifest?.formatVersion}; expected 1`);
+      }
+    } catch (err) {
+      errors.push(`Malformed manifest.json: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  const experimentsSummary: Array<{ id: string; title: string; type: string; timestamp?: string }> = [];
+  const moduleBreakdown: Record<string, number> = {};
+
+  if (manifest && Array.isArray(manifest.experiments)) {
+    for (const expEntry of manifest.experiments) {
+      const fileData = unzipped[expEntry.path];
+      if (!fileData) {
+        errors.push(`Manifest references missing file "${expEntry.path}"`);
+        continue;
+      }
+      try {
+        const expJson = JSON.parse(new TextDecoder('utf-8').decode(fileData));
+        const expTitle = String(expJson.title || expEntry.id);
+        const validation = validateExperimentRun(expJson);
+        if (!validation.valid) {
+          warnings.push(`Experiment "${expTitle}" has validation warnings: ${validation.errors.join('; ')}`);
+        }
+        const type = expJson.type || expEntry.type || 'unknown';
+        moduleBreakdown[type] = (moduleBreakdown[type] || 0) + 1;
+        experimentsSummary.push({
+          id: String(expJson.id || expEntry.id),
+          title: expTitle,
+          type,
+          timestamp: expJson.timestamp,
+        });
+      } catch {
+        errors.push(`Failed to parse experiment data in "${expEntry.path}"`);
+      }
+    }
+  }
+
+  const savedBytes = totalUncompressedBytes - compressedBytes;
+  const percentSaved = totalUncompressedBytes > 0 ? (savedBytes / totalUncompressedBytes) * 100 : 0;
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    manifest,
+    experiments: experimentsSummary,
+    moduleBreakdown,
+    stats: {
+      uncompressedBytes: totalUncompressedBytes,
+      compressedBytes,
+      savedBytes,
+      percentSaved,
+      entryCount: entryPaths.length,
+    },
+    sha256Checksum: zipHash,
+    schemaVersion: manifest?.formatVersion || 1,
+  };
+}

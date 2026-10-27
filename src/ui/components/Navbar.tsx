@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type DisciplineTab = 'chemistry' | 'probability' | 'physics';
+export type DisciplineTab = 'chemistry' | 'probability' | 'physics' | 'simxpack';
 export type ActiveTab = DisciplineTab; // Backward compatibility
 export type ThemeMode = 'chalkboard' | 'scientist-dark' | 'scientist-light' | 'green-black';
 
@@ -93,6 +93,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <span>🚀</span>
           Physics
+        </button>
+
+        <button
+          id="nav-tab-simxpack"
+          className={`lab-nav-tab ${activeDiscipline === 'simxpack' ? 'active' : ''}`}
+          onClick={() => onSelectDiscipline('simxpack')}
+          title="SimXPack Studio: Compression, Inspection & Cloud Sharing"
+        >
+          <span>📦</span>
+          SimXPack Studio
         </button>
       </nav>
 

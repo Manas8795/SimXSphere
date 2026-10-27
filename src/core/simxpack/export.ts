@@ -54,10 +54,10 @@ export async function exportSimXPack(
   experiments: ExperimentRun[],
   options: ExportSimXPackOptions
 ): Promise<ExportSimXPackResult> {
-  // Rule: exactly 2 to 4 experiments per pack
-  if (!Array.isArray(experiments) || experiments.length < 2 || experiments.length > 4) {
+  // Support 1 to 10 experiments per pack
+  if (!Array.isArray(experiments) || experiments.length < 1 || experiments.length > 10) {
     throw new Error(
-      `SimXPack requires between 2 and 4 experiments (got ${experiments?.length ?? 0})`
+      `SimXPack requires between 1 and 10 experiments (got ${experiments?.length ?? 0})`
     );
   }
 

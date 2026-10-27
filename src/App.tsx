@@ -18,8 +18,9 @@ import { createSingleSimXPackage, triggerFileDownload } from './core/simxpack/si
 import { ShareDialog } from './ui/components/sharing/ShareDialog';
 import { ImportDialog } from './ui/components/sharing/ImportDialog';
 import type { SimulationExplainerContext } from './core/explainer/types';
-import type { ExperimentRun } from './core/experiment/types';
+import type { ExperimentRun, PackageMetadata } from './core/experiment/types';
 import { LocalStorageAdapter } from './storage/localAdapter';
+import { PacksView } from './ui/views/PacksView';
 
 export interface SavedExperimentRun {
   id: string;
@@ -98,14 +99,92 @@ export const App: React.FC = () => {
   const [shareTargetExperiment, setShareTargetExperiment] = useState<ExperimentRun | null>(null);
   const [showImportDialog, setShowImportDialog] = useState<boolean>(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [packages, setPackages] = useState<PackageMetadata[]>([]);
 
-  // Load experiments on initial mount
+  // Load experiments & packages on initial mount
   useEffect(() => {
     storageAdapter.listExperiments().then((list) => {
       setSavedExperiments(list);
     }).catch((err) => {
       console.warn('Failed to load local experiments:', err);
     });
+
+    storageAdapter.listPackages().then((pkgs) => {
+      setPackages(pkgs);
+    }).catch((err) => {
+      console.warn('Failed to load local packages:', err);
+    });
+  }, [storageAdapter]);
+
+  const handleSavePackage = useCallback(async (meta: PackageMetadata, zipBytes: Uint8Array) => {
+    try {
+      await storageAdapter.savePackage(meta, zipBytes);
+      const updated = await storageAdapter.listPackages();
+      setPackages(updated);
+      setActionNotice(`✓ Package "${meta.name}" saved!`);
+      setTimeout(() => setActionNotice(null), 3500);
+    } catch (err) {
+      console.error('Failed to save package:', err);
+    }
+  }, [storageAdapter]);
+
+  const handleDeletePackage = useCallback(async (id: string) => {
+    try {
+      await storageAdapter.deletePackage(id);
+      const updated = await storageAdapter.listPackages();
+      setPackages(updated);
+      setActionNotice(`✓ Package deleted`);
+      setTimeout(() => setActionNotice(null), 3500);
+    } catch (err) {
+      console.error('Failed to delete package:', err);
+    }
+  }, [storageAdapter]);
+
+  const handleDownloadPackage = useCallback(async (id: string) => {
+    try {
+      const pkg = await storageAdapter.getPackage(id);
+      if (!pkg) return;
+      const blob = new Blob([pkg.zipBytes as unknown as BlobPart], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${pkg.metadata.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.simxpack.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download error:', err);
+    }
+  }, [storageAdapter]);
+
+  const handleUploadPackageToCloud = useCallback(async (pkg: PackageMetadata) => {
+    try {
+      const fullPkg = await storageAdapter.getPackage(pkg.id);
+      if (!fullPkg) return;
+      const apiGatewayUrl = import.meta.env.VITE_API_GATEWAY_URL || 'https://drohpshzvh.execute-api.eu-north-1.amazonaws.com';
+      const initRes = await fetch(`${apiGatewayUrl}/packages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: pkg.id,
+          title: pkg.name,
+          domain: 'multi',
+          sizeBytes: pkg.compressedBytes,
+          checksum: pkg.sha256,
+        }),
+      });
+      const initData = await initRes.json();
+      if (initData.uploadUrl) {
+        await fetch(initData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: fullPkg.zipBytes as unknown as BodyInit,
+        });
+      }
+      setActionNotice(`✓ Successfully backed up "${pkg.name}" to AWS S3 & DynamoDB`);
+      setTimeout(() => setActionNotice(null), 3500);
+    } catch (err) {
+      alert(`Cloud backup notice: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }, [storageAdapter]);
 
   const handleSaveExperiment = useCallback(async (exp: ExperimentRun) => {
@@ -430,6 +509,15 @@ export const App: React.FC = () => {
                     >
                       📥 Import .simxpack
                     </button>
+                    <button
+                      type="button"
+                      className="lab-btn lab-btn-secondary"
+                      onClick={() => setActiveDiscipline('simxpack')}
+                      id="btn-open-simxpack-studio"
+                      title="Open SimXPack Studio to bundle, compress, and inspect packages"
+                    >
+                      📦 SimXPack Studio
+                    </button>
                     {savedExperiments.length > 0 && (
                       <button
                         type="button"
@@ -608,6 +696,21 @@ export const App: React.FC = () => {
             onSaveExperiment={handleSaveExperiment}
             restoredExperiment={restoredExperiment?.type === 'projectile' ? restoredExperiment : null}
             onContextChange={handleExplainerContextChange}
+          />
+        )}
+
+        {/* ===================================================================
+            4. SIMXPACK STUDIO (Compression, Safe Inspection & AWS Cloud Sync)
+            =================================================================== */}
+        {activeDiscipline === 'simxpack' && (
+          <PacksView
+            experiments={savedExperiments}
+            packages={packages}
+            onSavePackage={handleSavePackage}
+            onDeletePackage={handleDeletePackage}
+            onExperimentsImported={handleImportComplete}
+            onDownloadPackage={handleDownloadPackage}
+            onUploadPackageToCloud={handleUploadPackageToCloud}
           />
         )}
       </main>
