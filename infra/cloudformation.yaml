@@ -1,17 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  SimXSphere Serverless Architecture — 100% Class A Always-Free Tier.
-  Guarantees zero out-of-pocket costs with zero S3 and zero API Gateway dependencies.
-  Provisioned DynamoDB (5 RCU/WCU), Cognito (50k MAUs), and Lambda Function URL (1M requests/mo).
-
-Parameters:
-  AppClientOrigin:
-    Type: String
-    Default: 'http://localhost:5173'
-    Description: Allowed origin for CORS headers
+  SimXSphere Enterprise Serverless Architecture.
+  Deployed in AWS eu-north-1 (Stockholm):
+  - Amazon S3 (Package Object Storage & Presigned URLs)
+  - Amazon API Gateway (HTTP API v2 with CORS)
+  - AWS Lambda (Node.js 20.x Microservices API with AWS SDK v3)
+  - Amazon DynamoDB (Single-Table Notebook Registry with GSI & TTL Expiry)
+  - Amazon Cognito (User Pool & Web Client for Cloud Authentication)
+  - Amazon SNS (Simulation Event Notification Topic)
+  - Amazon CloudWatch (Logging & Observability with 14-day retention)
 
 Resources:
-  # 1. Cognito User Pool (50,000 MAUs Always Free)
+  # -------------------------------------------------------------
+  # 1. AUTHENTICATION: Amazon Cognito User Pool & Client
+  # -------------------------------------------------------------
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -38,31 +40,96 @@ Resources:
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # 2. DynamoDB Provisioned Table (Always Free: 25 RCU/WCU, 25 GB storage)
-  PackagesTable:
+  # -------------------------------------------------------------
+  # 2. OBJECT STORAGE: S3 Bucket for Simulation Packages (.simxpack)
+  # -------------------------------------------------------------
+  PackageStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-packages-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+
+  # -------------------------------------------------------------
+  # 3. DATABASE: Amazon DynamoDB Single-Table with GSI & TTL
+  # -------------------------------------------------------------
+  NotebookTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${AWS::StackName}-packages'
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      TableName: !Sub '${AWS::StackName}-notebook'
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
         - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
           AttributeType: S
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
-  # 3. IAM Role for Lambda Function
+  # -------------------------------------------------------------
+  # 4. NOTIFICATIONS: Amazon SNS Topic
+  # -------------------------------------------------------------
+  SimulationEventsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-simulation-events'
+      DisplayName: 'SimXSphere Simulation Milestones'
+
+  # -------------------------------------------------------------
+  # 5. OBSERVABILITY: CloudWatch Log Group
+  # -------------------------------------------------------------
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-api'
+      RetentionInDays: 14
+
+  # -------------------------------------------------------------
+  # 6. IAM ROLE: Least-Privilege Lambda Execution Role
+  # -------------------------------------------------------------
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${AWS::StackName}-lambda-role'
+      RoleName: !Sub '${AWS::StackName}-execution-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -71,7 +138,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: DynamoDBAndLogsPolicy
+        - PolicyName: SimXSphereServicesPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -87,16 +154,24 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:Query
                   - dynamodb:DeleteItem
-                Resource: !GetAtt PackagesTable.Arn
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt NotebookTable.Arn
+                  - !Sub '${NotebookTable.Arn}/index/*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource: !Sub '${PackageStorageBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SimulationEventsTopic
 
-  # 4. CloudWatch Log Group with 7-day retention (guarantees < 100 MB/mo, well under 5 GB free limit)
-  ApiLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-api'
-      RetentionInDays: 7
-
-  # 5. Serverless Compute: Lambda Function (1M requests & 3.2M sec compute Always Free)
+  # -------------------------------------------------------------
+  # 7. SERVERLESS COMPUTE: Lambda API Microservices Handler
+  # -------------------------------------------------------------
   ApiFunction:
     Type: AWS::Lambda::Function
     DependsOn: ApiLogGroup
@@ -104,20 +179,37 @@ Resources:
       FunctionName: !Sub '${AWS::StackName}-api'
       Runtime: nodejs20.x
       Handler: index.handler
-      MemorySize: 128
-      Timeout: 10
+      MemorySize: 256
+      Timeout: 15
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          TABLE_NAME: !Ref PackagesTable
+          TABLE_NAME: !Ref NotebookTable
+          BUCKET_NAME: !Ref PackageStorageBucket
+          SNS_TOPIC_ARN: !Ref SimulationEventsTopic
           USER_POOL_ID: !Ref UserPool
           APP_CLIENT_ID: !Ref UserPoolClient
       Code:
         ZipFile: |
+          const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+          const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+          const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+          const { DynamoDBDocumentClient, PutCommand, GetCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+          const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+
+          const s3 = new S3Client({});
+          const ddbClient = new DynamoDBClient({});
+          const docClient = DynamoDBDocumentClient.from(ddbClient);
+          const sns = new SNSClient({});
+
+          const TABLE_NAME = process.env.TABLE_NAME;
+          const BUCKET_NAME = process.env.BUCKET_NAME;
+          const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
+
           const CORS_HEADERS = {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET,POST,DELETE,OPTIONS',
+            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
             'Access-Control-Allow-Headers': 'Authorization,Content-Type',
           };
 
@@ -146,43 +238,248 @@ Resources:
             const userSub = extractSubFromJwt(authHeader) || 'anonymous-user';
 
             try {
-              if (method === 'GET' && (path === '/packages' || path === '/packages/')) {
+              // Route 1: GET /health
+              if (method === 'GET' && path === '/health') {
                 return {
                   statusCode: 200,
                   headers: CORS_HEADERS,
-                  body: JSON.stringify({ packages: [], status: 'ok', region: process.env.AWS_REGION }),
-                };
-              }
-
-              if (method === 'POST' && path === '/packages') {
-                const payload = JSON.parse(event.body || '{}');
-                const packageId = payload.id || `sim_${Date.now()}`;
-                return {
-                  statusCode: 201,
-                  headers: CORS_HEADERS,
                   body: JSON.stringify({
-                    message: 'Package saved to DynamoDB (100% Free Tier)',
-                    packageId,
-                    owner: userSub,
+                    status: 'healthy',
+                    service: 'SimXSphere Cloud API',
+                    version: '2.0.0',
+                    region: process.env.AWS_REGION,
+                    features: {
+                      s3ObjectStorage: true,
+                      dynamoDbNotebook: true,
+                      cognitoAuth: true,
+                      snsEvents: true,
+                      apiGateway: true,
+                    },
+                    timestamp: new Date().toISOString(),
                   }),
                 };
               }
 
-              if (method === 'GET' && path.startsWith('/packages/')) {
-                const packageId = path.split('/')[2];
+              // Route 2: GET /notebook/experiments (List user's experiments)
+              if (method === 'GET' && (path === '/notebook/experiments' || path === '/packages')) {
+                const res = await docClient.send(new QueryCommand({
+                  TableName: TABLE_NAME,
+                  KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+                  ExpressionAttributeValues: {
+                    ':pk': `USER#${userSub}`,
+                    ':skPrefix': 'EXP#',
+                  },
+                }));
                 return {
                   statusCode: 200,
                   headers: CORS_HEADERS,
-                  body: JSON.stringify({ id: packageId, message: 'Package retrieved', owner: userSub }),
+                  body: JSON.stringify({ experiments: res.Items || [], packages: res.Items || [] }),
                 };
               }
 
-              if (method === 'DELETE' && path.startsWith('/packages/')) {
-                const packageId = path.split('/')[2];
+              // Route 3: POST /notebook/experiments (Save experiment metadata & return presigned S3 upload URL)
+              if (method === 'POST' && (path === '/notebook/experiments' || path === '/packages')) {
+                const body = JSON.parse(event.body || '{}');
+                const expId = body.id || `exp_${Date.now()}`;
+                const title = body.title || 'Untitled Simulation';
+                const domain = body.domain || 'chemistry';
+                const s3Key = `packages/${userSub}/${expId}.simxpack`;
+
+                const item = {
+                  PK: `USER#${userSub}`,
+                  SK: `EXP#${expId}`,
+                  GSI1PK: `DOMAIN#${domain}`,
+                  GSI1SK: new Date().toISOString(),
+                  id: expId,
+                  title,
+                  domain,
+                  owner: userSub,
+                  s3Key,
+                  createdAt: new Date().toISOString(),
+                  sizeBytes: body.sizeBytes || 0,
+                  checksum: body.checksum || null,
+                  parameters: body.parameters || {},
+                  outputs: body.outputs || {},
+                };
+
+                await docClient.send(new PutCommand({
+                  TableName: TABLE_NAME,
+                  Item: item,
+                }));
+
+                const uploadUrl = await getSignedUrl(s3, new PutObjectCommand({
+                  Bucket: BUCKET_NAME,
+                  Key: s3Key,
+                  ContentType: 'application/octet-stream',
+                }), { expiresIn: 3600 });
+
+                return {
+                  statusCode: 201,
+                  headers: CORS_HEADERS,
+                  body: JSON.stringify({
+                    message: 'Experiment record created in DynamoDB',
+                    experiment: item,
+                    uploadUrl,
+                    s3Key,
+                  }),
+                };
+              }
+
+              // Route 4: GET /notebook/experiments/{id} (Fetch metadata & presigned download URL)
+              if (method === 'GET' && path.startsWith('/notebook/experiments/')) {
+                const expId = path.split('/')[3];
+                const res = await docClient.send(new GetCommand({
+                  TableName: TABLE_NAME,
+                  Key: { PK: `USER#${userSub}`, SK: `EXP#${expId}` },
+                }));
+
+                if (!res.Item) {
+                  return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ message: 'Experiment not found' }) };
+                }
+
+                const downloadUrl = await getSignedUrl(s3, new GetObjectCommand({
+                  Bucket: BUCKET_NAME,
+                  Key: res.Item.s3Key,
+                }), { expiresIn: 3600 });
+
                 return {
                   statusCode: 200,
                   headers: CORS_HEADERS,
-                  body: JSON.stringify({ message: 'Package deleted', packageId }),
+                  body: JSON.stringify({ experiment: res.Item, downloadUrl }),
+                };
+              }
+
+              // Route 5: DELETE /notebook/experiments/{id}
+              if (method === 'DELETE' && path.startsWith('/notebook/experiments/')) {
+                const expId = path.split('/')[3];
+                const res = await docClient.send(new GetCommand({
+                  TableName: TABLE_NAME,
+                  Key: { PK: `USER#${userSub}`, SK: `EXP#${expId}` },
+                }));
+
+                if (res.Item) {
+                  await docClient.send(new DeleteCommand({
+                    TableName: TABLE_NAME,
+                    Key: { PK: `USER#${userSub}`, SK: `EXP#${expId}` },
+                  }));
+                  try {
+                    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: res.Item.s3Key }));
+                  } catch (e) {
+                    console.error('Error deleting S3 object:', e);
+                  }
+                }
+
+                return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ message: 'Experiment deleted', id: expId }) };
+              }
+
+              // Route 6: POST /notebook/share/{id} (Create scoped, revocable share link with TTL)
+              if (method === 'POST' && path.startsWith('/notebook/share/')) {
+                const expId = path.split('/')[3];
+                const shareToken = `sh_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                const ttlSeconds = Math.floor(Date.now() / 1000) + (14 * 86400); // 14 days TTL
+
+                const expRes = await docClient.send(new GetCommand({
+                  TableName: TABLE_NAME,
+                  Key: { PK: `USER#${userSub}`, SK: `EXP#${expId}` },
+                }));
+
+                if (!expRes.Item) {
+                  return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ message: 'Experiment not found to share' }) };
+                }
+
+                const shareRecord = {
+                  PK: `SHARE#${shareToken}`,
+                  SK: 'METADATA',
+                  shareToken,
+                  experimentId: expId,
+                  owner: userSub,
+                  title: expRes.Item.title,
+                  domain: expRes.Item.domain,
+                  s3Key: expRes.Item.s3Key,
+                  createdAt: new Date().toISOString(),
+                  ttl: ttlSeconds,
+                };
+
+                await docClient.send(new PutCommand({
+                  TableName: TABLE_NAME,
+                  Item: shareRecord,
+                }));
+
+                // Publish milestone to SNS Topic
+                try {
+                  await sns.send(new PublishCommand({
+                    TopicArn: SNS_TOPIC_ARN,
+                    Subject: `SimXSphere Experiment Shared: ${expRes.Item.title}`,
+                    Message: JSON.stringify({
+                      event: 'EXPERIMENT_SHARED',
+                      shareToken,
+                      experimentId: expId,
+                      domain: expRes.Item.domain,
+                      timestamp: new Date().toISOString(),
+                    }),
+                  }));
+                } catch (snsErr) {
+                  console.warn('SNS publish warning:', snsErr);
+                }
+
+                return {
+                  statusCode: 201,
+                  headers: CORS_HEADERS,
+                  body: JSON.stringify({
+                    message: 'Share link created with 14-day automatic TTL',
+                    shareToken,
+                    shareUrl: `/shared/${shareToken}`,
+                    expiresAt: new Date(ttlSeconds * 1000).toISOString(),
+                  }),
+                };
+              }
+
+              // Route 7: GET /notebook/share/{token} (Read-only public view)
+              if (method === 'GET' && path.startsWith('/notebook/share/')) {
+                const shareToken = path.split('/')[3];
+                const res = await docClient.send(new GetCommand({
+                  TableName: TABLE_NAME,
+                  Key: { PK: `SHARE#${shareToken}`, SK: 'METADATA' },
+                }));
+
+                if (!res.Item) {
+                  return { statusCode: 404, headers: CORS_HEADERS, body: JSON.stringify({ message: 'Share link expired or not found' }) };
+                }
+
+                let downloadUrl = null;
+                if (res.Item.s3Key) {
+                  downloadUrl = await getSignedUrl(s3, new GetObjectCommand({
+                    Bucket: BUCKET_NAME,
+                    Key: res.Item.s3Key,
+                  }), { expiresIn: 1800 });
+                }
+
+                return {
+                  statusCode: 200,
+                  headers: CORS_HEADERS,
+                  body: JSON.stringify({
+                    sharedExperiment: {
+                      title: res.Item.title,
+                      domain: res.Item.domain,
+                      sharedAt: res.Item.createdAt,
+                    },
+                    downloadUrl,
+                  }),
+                };
+              }
+
+              // Route 8: POST /notify/event (Publish custom simulation milestone to SNS)
+              if (method === 'POST' && path === '/notify/event') {
+                const body = JSON.parse(event.body || '{}');
+                await sns.send(new PublishCommand({
+                  TopicArn: SNS_TOPIC_ARN,
+                  Subject: `SimXSphere Simulation Event: ${body.eventName || 'Custom Event'}`,
+                  Message: JSON.stringify({ ...body, userSub, timestamp: new Date().toISOString() }),
+                }));
+                return {
+                  statusCode: 200,
+                  headers: CORS_HEADERS,
+                  body: JSON.stringify({ message: 'Simulation milestone published to Amazon SNS' }),
                 };
               }
 
@@ -192,6 +489,7 @@ Resources:
                 body: JSON.stringify({ message: `Route not found: ${method} ${path}` }),
               };
             } catch (err) {
+              console.error('Lambda error:', err);
               return {
                 statusCode: 500,
                 headers: CORS_HEADERS,
@@ -200,7 +498,59 @@ Resources:
             }
           };
 
-  # 6. Lambda Function URL (Zero Cost, No API Gateway hourly or per-call surcharge)
+  # -------------------------------------------------------------
+  # 8. API GATEWAY: HTTP API v2 with CORS
+  # -------------------------------------------------------------
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-http-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        MaxAge: 600
+
+  HttpApiLambdaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  HttpApiDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: '$default'
+      Target: !Sub 'integrations/${HttpApiLambdaIntegration}'
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  ApiGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*'
+
+  # Lambda Function URL (Direct HTTPS endpoint with zero API Gateway overhead)
   ApiFunctionUrl:
     Type: AWS::Lambda::Url
     Properties:
@@ -216,7 +566,6 @@ Resources:
           - '*'
         MaxAge: 600
 
-  # 7. Public Permission for Function URL
   ApiFunctionUrlPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -225,23 +574,25 @@ Resources:
       Principal: '*'
       FunctionUrlAuthType: NONE
 
-  ApiFunctionGeneralInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref ApiFunction
-      Action: lambda:InvokeFunction
-      Principal: '*'
-
 Outputs:
-  ApiEndpointUrl:
-    Description: 100% Free Tier Lambda Function URL
+  ApiGatewayUrl:
+    Description: Amazon API Gateway HTTP API Endpoint
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  LambdaFunctionUrl:
+    Description: Direct Lambda Function URL Endpoint
     Value: !GetAtt ApiFunctionUrl.FunctionUrl
-  UserPoolId:
-    Description: Cognito User Pool ID
+  S3PackageBucket:
+    Description: Amazon S3 Package Object Storage
+    Value: !Ref PackageStorageBucket
+  DynamoDbNotebookTable:
+    Description: Amazon DynamoDB Single-Table Registry with TTL
+    Value: !Ref NotebookTable
+  CognitoUserPoolId:
+    Description: Amazon Cognito User Pool ID
     Value: !Ref UserPool
-  UserPoolClientId:
-    Description: Cognito User Pool Client ID
+  CognitoClientId:
+    Description: Amazon Cognito Web Client ID
     Value: !Ref UserPoolClient
-  PackagesTableName:
-    Description: DynamoDB Provisioned Table (5 RCU / 5 WCU Always Free)
-    Value: !Ref PackagesTable
+  SnsEventsTopicArn:
+    Description: Amazon SNS Simulation Events Topic ARN
+    Value: !Ref SimulationEventsTopic
