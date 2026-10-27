@@ -71,12 +71,20 @@ export class AwsStorageAdapter implements StorageAdapter {
     // Handled locally
   }
 
+  private toBase64(bytes: Uint8Array): string {
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
   // --- Package (SimXPack) Cloud Operations ---
 
   async savePackage(metadata: PackageMetadata, zipBytes: Uint8Array): Promise<void> {
     const headers = await this.getAuthHeaders();
 
-    // Step 1: Request presigned upload URL from Lambda
+    // Step 1: Send package metadata and payload to Function URL / API handler
     const initRes = await fetch(`${this.apiBaseUrl}/packages`, {
       method: 'POST',
       headers,
@@ -89,6 +97,7 @@ export class AwsStorageAdapter implements StorageAdapter {
         uncompressedBytes: metadata.uncompressedBytes,
         compressedBytes: metadata.compressedBytes,
         sha256: metadata.sha256,
+        payloadBase64: this.toBase64(zipBytes),
       }),
     });
 
@@ -97,30 +106,30 @@ export class AwsStorageAdapter implements StorageAdapter {
       throw new Error(err.message || `Failed to initiate cloud package: HTTP ${initRes.status}`);
     }
 
-    const { uploadUrl } = await initRes.json();
+    const initData = await initRes.json().catch(() => ({}));
 
-    // Step 2: Upload ZIP payload directly to private S3 bucket via presigned URL
-    // (Bypasses API Gateway and Lambda compute completely, incurring $0.00 bandwidth penalty)
-    const s3Res = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/zip',
-      },
-      body: zipBytes as unknown as BodyInit,
-    });
+    // If an uploadUrl is provided (legacy S3 presigned URL mode), complete presigned steps
+    if (initData.uploadUrl) {
+      const s3Res = await fetch(initData.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/zip',
+        },
+        body: zipBytes as unknown as BodyInit,
+      });
 
-    if (!s3Res.ok) {
-      throw new Error(`Direct S3 upload failed with status HTTP ${s3Res.status}`);
-    }
+      if (!s3Res.ok) {
+        throw new Error(`Direct S3 upload failed with status HTTP ${s3Res.status}`);
+      }
 
-    // Step 3: Notify Lambda that upload completed successfully
-    const completeRes = await fetch(`${this.apiBaseUrl}/packages/${metadata.id}/complete`, {
-      method: 'POST',
-      headers,
-    });
+      const completeRes = await fetch(`${this.apiBaseUrl}/packages/${metadata.id}/complete`, {
+        method: 'POST',
+        headers,
+      });
 
-    if (!completeRes.ok) {
-      throw new Error(`Failed to finalize package: HTTP ${completeRes.status}`);
+      if (!completeRes.ok) {
+        throw new Error(`Failed to finalize package: HTTP ${completeRes.status}`);
+      }
     }
   }
 

@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  SimXSphere Serverless Cloud Architecture (Free-Tier Strict)
-  Services: Cognito, HTTP API, Lambda (128MB), DynamoDB (On-Demand), S3 (Private, Presigned URLs)
-  Prohibited: EC2, RDS, NAT Gateway, CloudFront, Route53, WAF.
+  SimXSphere Serverless Cloud Architecture — 100% Class A Always-Free Architecture.
+  Zero Out-of-Pocket Cost: Lambda Function URLs (Always Free), DynamoDB Provisioned 5 RCU/WCU (Always Free), Cognito (50k MAUs Always Free).
+  Strictly Prohibited: S3 (paid after 12 mo), API Gateway (paid after 12 mo), EC2, RDS, NAT Gateway, CloudFront, Route53, WAF.
 
 Globals:
   Function:
@@ -23,7 +23,7 @@ Parameters:
 
 Resources:
   # -------------------------------------------------------------
-  # 1. Authentication: AWS Cognito User Pool (50k MAUs Free Tier)
+  # 1. Authentication: AWS Cognito User Pool (50,000 MAUs Always Free)
   # -------------------------------------------------------------
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -52,45 +52,33 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
 
   # -------------------------------------------------------------
-  # 2. HTTP API: Amazon API Gateway (1M calls Free Tier)
-  # -------------------------------------------------------------
-  HttpApi:
-    Type: AWS::Serverless::HttpApi
-    Properties:
-      CorsConfiguration:
-        AllowOrigins:
-          - !Ref AppClientOrigin
-        AllowHeaders:
-          - Authorization
-          - Content-Type
-        AllowMethods:
-          - GET
-          - POST
-          - DELETE
-          - OPTIONS
-        MaxAge: 600
-      Auth:
-        DefaultAuthorizer: CognitoAuth
-        Authorizers:
-          CognitoAuth:
-            IdentitySource: '$request.header.Authorization'
-            JwtConfiguration:
-              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
-              audience:
-                - !Ref UserPoolClient
-
-  # -------------------------------------------------------------
-  # 3. Serverless Compute: AWS Lambda (1M requests & 3.2M sec compute)
+  # 2. Serverless Compute: AWS Lambda + Function URL (1M requests & 3.2M sec compute Always Free)
+  # Eliminates Amazon API Gateway (which charges after 12 months)
   # -------------------------------------------------------------
   SimXSphereApiFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: lambda/
       Handler: api.handler
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - !Ref AppClientOrigin
+          AllowHeaders:
+            - Authorization
+            - Content-Type
+          AllowMethods:
+            - GET
+            - POST
+            - DELETE
+            - OPTIONS
+          MaxAge: 600
       Environment:
         Variables:
           TABLE_NAME: !Ref PackagesTable
-          BUCKET_NAME: !Ref StorageBucket
+          USER_POOL_ID: !Ref UserPool
+          APP_CLIENT_ID: !Ref UserPoolClient
       Policies:
         - Statement:
             - Effect: Allow
@@ -100,43 +88,6 @@ Resources:
                 - dynamodb:Query
                 - dynamodb:DeleteItem
               Resource: !GetAtt PackagesTable.Arn
-            - Effect: Allow
-              Action:
-                - s3:PutObject
-                - s3:GetObject
-                - s3:DeleteObject
-              Resource: !Sub '${StorageBucket.Arn}/packages/*'
-      Events:
-        ListPackages:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /packages
-            Method: GET
-        CreatePackage:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /packages
-            Method: POST
-        CompletePackage:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /packages/{id}/complete
-            Method: POST
-        GetDownloadUrl:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /packages/{id}/download-url
-            Method: GET
-        DeletePackage:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /packages/{id}
-            Method: DELETE
 
   ApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -145,13 +96,18 @@ Resources:
       RetentionInDays: 7
 
   # -------------------------------------------------------------
-  # 4. Metadata: Amazon DynamoDB (25 GB & 25 RCU/WCU Free Tier)
+  # 3. Metadata & Payload: Amazon DynamoDB (25 GB Storage & 25 RCU/WCU Always Free)
+  # Setting 5 RCU / 5 WCU uses only 20% of the verified Always Free allowance.
+  # Small .simxpack packages (2-50 KB) are stored directly as DynamoDB items, eliminating Amazon S3.
   # -------------------------------------------------------------
   PackagesTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub '${AWS::StackName}-packages'
-      BillingMode: PAY_PER_REQUEST
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       AttributeDefinitions:
         - AttributeName: PK
           AttributeType: S
@@ -163,49 +119,16 @@ Resources:
         - AttributeName: SK
           KeyType: RANGE
 
-  # -------------------------------------------------------------
-  # 5. Payloads: Amazon S3 Private Bucket (5 GB Free Tier)
-  # -------------------------------------------------------------
-  StorageBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub '${AWS::StackName}-payloads-${AWS::AccountId}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        IgnorePublicAcls: true
-        BlockPublicPolicy: true
-        RestrictPublicBuckets: true
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders:
-              - '*'
-            AllowedMethods:
-              - PUT
-              - POST
-              - GET
-            AllowedOrigins:
-              - !Ref AppClientOrigin
-            MaxAge: 3600
-      LifecycleConfiguration:
-        Rules:
-          - Id: AutoCleanOldPackages
-            Status: Enabled
-            ExpirationInDays: 30
-
 Outputs:
-  HttpApiUrl:
-    Description: HTTP API Gateway Endpoint URL
-    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  ApiFunctionUrl:
+    Description: Lambda Function URL Endpoint (Zero Cost, No API Gateway surcharge)
+    Value: !GetAtt SimXSphereApiFunctionUrl.FunctionUrl
   UserPoolId:
-    Description: Cognito User Pool ID
+    Description: Cognito User Pool ID (50,000 MAUs Always Free)
     Value: !Ref UserPool
   UserPoolClientId:
     Description: Cognito User Pool Client ID
     Value: !Ref UserPoolClient
-  StorageBucketName:
-    Description: Private S3 Storage Bucket
-    Value: !Ref StorageBucket
+  PackagesTableName:
+    Description: DynamoDB Provisioned Table (Always Free 25 RCU/WCU)
+    Value: !Ref PackagesTable
