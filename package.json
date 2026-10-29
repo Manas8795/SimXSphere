@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:aws": "npm run build && aws s3 sync dist/ s3://simxsphere-web-467021296585 --delete"
   },
   "dependencies": {
     "fflate": "^0.8.3",
