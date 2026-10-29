@@ -11,13 +11,11 @@ import type {
   PackageMetadata,
   ManifestExperimentEntry,
   ManifestFileEntry,
-  ProbabilityExperiment,
-  ProjectileExperiment,
 } from '../experiment/types';
 import { serializeCanonicalJson } from '../experiment/serialize';
 import { computeSha256 } from '../crypto/sha256';
 import { safeRandomUUID } from '../crypto/uuid';
-import { exportProbabilityCsv, exportProjectileCsv } from './csv';
+import { exportExperimentCsv } from './csv';
 import { createZipArchive, type ZipFileEntry } from './zip';
 import { validateExperimentRun } from '../experiment/validate';
 
@@ -113,10 +111,7 @@ export async function exportSimXPack(
 
     // Optional CSV inclusion
     if (options.includeCsv !== false) {
-      const csvStr =
-        exp.type === 'probability'
-          ? exportProbabilityCsv(exp as ProbabilityExperiment)
-          : exportProjectileCsv(exp as ProjectileExperiment);
+      const csvStr = exportExperimentCsv(exp);
       const csvBytes = encoder.encode(csvStr);
       const csvPath = `csv/exp-${i + 1}-${slug}.csv`;
       const csvHash = await computeSha256(csvBytes);

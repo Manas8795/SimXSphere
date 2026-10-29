@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { ExperimentRun, ProbabilityExperiment, ProjectileExperiment } from '../../core/experiment/types';
 import { serializeCanonicalJson } from '../../core/experiment/serialize';
-import { exportProbabilityCsv, exportProjectileCsv } from '../../core/simxpack/csv';
+import { exportExperimentCsv } from '../../core/simxpack/csv';
 
 interface ExperimentsViewProps {
   experiments: ExperimentRun[];
@@ -54,10 +54,7 @@ export const ExperimentsView: React.FC<ExperimentsViewProps> = ({
   };
 
   const handleDownloadCsv = (exp: ExperimentRun) => {
-    const csvContent =
-      exp.type === 'probability'
-        ? exportProbabilityCsv(exp as ProbabilityExperiment)
-        : exportProjectileCsv(exp as ProjectileExperiment);
+    const csvContent = exportExperimentCsv(exp);
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

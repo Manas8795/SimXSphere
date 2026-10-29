@@ -2,9 +2,33 @@ import { describe, it, expect } from 'vitest';
 import { exportSimXPack } from '../../src/core/simxpack/export';
 import { inspectSimXPack } from '../../src/core/simxpack/import';
 import { createZipArchive } from '../../src/core/simxpack/zip';
-import type { ProbabilityExperiment, ProjectileExperiment } from '../../src/core/experiment/types';
+import type { ChemistryExperiment, ProbabilityExperiment, ProjectileExperiment } from '../../src/core/experiment/types';
 
 describe('SimXPack Package Inspector & Compression Analyzer', () => {
+  const dummyChemExp: ChemistryExperiment = {
+    schemaVersion: 1,
+    id: '1c2a3b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c',
+    type: 'chemistry',
+    title: 'Synthesis: H2O (Water)',
+    description: '2H2(g) + O2(g) -> 2H2O(l) • Covalent Bond',
+    createdAt: '2026-10-29T10:00:00.000Z',
+    appVersion: '1.0.0',
+    parameters: {
+      mode: 'synthesis',
+      reactants: [
+        { formula: 'H', name: 'Hydrogen', ratio: 2 },
+        { formula: 'O', name: 'Oxygen', ratio: 1 },
+      ],
+    },
+    results: {
+      reactionType: 'Synthesis',
+      balancedEquation: '2H2(g) + O2(g) -> 2H2O(l)',
+      products: ['H2O'],
+      isConserved: true,
+      isCurated: true,
+      provenance: 'rule_based',
+    },
+  };
   const dummyProbExp: ProbabilityExperiment = {
     schemaVersion: 1,
     id: '5b0c2c9e-3f0a-4c55-9d3e-0c1a7e2f9a10',
@@ -58,6 +82,22 @@ describe('SimXPack Package Inspector & Compression Analyzer', () => {
     expect(inspection.stats.uncompressedBytes).toBeGreaterThan(0);
     expect(inspection.stats.compressedBytes).toBe(zipBytes.byteLength);
     expect(inspection.sha256Checksum).toHaveLength(64);
+  });
+
+  it('correctly bundles and inspects a Chemistry experiment with CSV outcome table', async () => {
+    const { zipBytes, manifest } = await exportSimXPack([dummyChemExp], {
+      collection: {
+        name: 'Chemistry Pack',
+        description: 'Water synthesis experiment',
+      },
+      includeCsv: true,
+    });
+
+    expect(manifest.files.some((f) => f.path.startsWith('csv/'))).toBe(true);
+    const inspection = await inspectSimXPack(zipBytes);
+    expect(inspection.valid).toBe(true);
+    expect(inspection.moduleBreakdown).toEqual({ chemistry: 1 });
+    expect(inspection.experiments[0].title).toBe('Synthesis: H2O (Water)');
   });
 
   it('rejects an empty or zero-byte archive with a clear error', async () => {
