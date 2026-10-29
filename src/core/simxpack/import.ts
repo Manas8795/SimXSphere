@@ -11,6 +11,7 @@ import type {
 } from '../experiment/types';
 import { extractZipArchive } from './zip';
 import { computeSha256 } from '../crypto/sha256';
+import { safeRandomUUID } from '../crypto/uuid';
 import { validateExperimentRun } from '../experiment/validate';
 
 export const MAX_COMPRESSED_SIZE_BYTES = 5 * 1024 * 1024; // 5 MiB
@@ -221,7 +222,7 @@ export async function importSimXPack(
       } else if (conflictStrategy === 'copy') {
         const copyExp: ExperimentRun = {
           ...typedExp,
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           title: `${typedExp.title} (Copy)`,
           metadata: {
             ...typedExp.metadata,
@@ -239,7 +240,7 @@ export async function importSimXPack(
 
   const zipHash = await computeSha256(zipBytes);
   const metadata: PackageMetadata = {
-    id: manifest.collection.id || crypto.randomUUID(),
+    id: manifest.collection.id || safeRandomUUID(),
     name: manifest.collection.name,
     description: manifest.collection.description,
     createdAt: manifest.createdAt,

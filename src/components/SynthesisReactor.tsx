@@ -7,6 +7,7 @@ import { PERIODIC_TABLE } from '../chemistry-data/elements';
 import type { ChemistryExperiment } from '../core/experiment/types';
 import { buildSynthesisReactorExplainerContext } from '../core/explainer/context-builders/chemistryContext';
 import type { SimulationExplainerContext } from '../core/explainer/types';
+import { safeRandomUUID } from '../core/crypto/uuid';
 
 export interface ReactorElementSlot {
   symbol: string;
@@ -128,7 +129,7 @@ export const SynthesisReactor: React.FC<SynthesisReactorProps> = ({
     if (onSaveExperiment) {
       const exp: ChemistryExperiment = {
         schemaVersion: 1,
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         type: 'chemistry',
         title: `Synthesis: ${compound.formula} (${compound.commonName})`,
         description: `${compound.synthesisEquation} • ${compound.bondType} Bond`,

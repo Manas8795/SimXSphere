@@ -21,6 +21,7 @@ import type { SimulationExplainerContext } from './core/explainer/types';
 import type { ExperimentRun, PackageMetadata } from './core/experiment/types';
 import { LocalStorageAdapter } from './storage/localAdapter';
 import { PacksView } from './ui/views/PacksView';
+import { ErrorBoundary } from './ui/components/ErrorBoundary';
 
 export interface SavedExperimentRun {
   id: string;
@@ -443,7 +444,7 @@ export const App: React.FC = () => {
             1. CHEMISTRY DISCIPLINE (Contains Workplane, Periodic Table, Reactor, Aqueous, Balancer, Discoveries)
             =================================================================== */}
         {activeDiscipline === 'chemistry' && (
-          <>
+          <ErrorBoundary fallbackTitle="Chemistry Lab Paused">
             {/* Sub-Tab 0: Interactive Drag-and-Drop Workplane */}
             {chemistrySubTab === 'workplane' && (
               <WorkplaneLab
@@ -658,7 +659,7 @@ export const App: React.FC = () => {
                 )}
               </div>
             )}
-          </>
+          </ErrorBoundary>
         )}
 
         {/* Modal Dialogs for Local Sharing & Import */}
@@ -681,37 +682,43 @@ export const App: React.FC = () => {
             2. PROBABILITY DISCIPLINE (Independent Probability Experiments)
             =================================================================== */}
         {activeDiscipline === 'probability' && (
-          <ProbabilityView
-            onSaveExperiment={handleSaveExperiment}
-            restoredExperiment={restoredExperiment?.type === 'probability' ? restoredExperiment : null}
-            onContextChange={handleExplainerContextChange}
-          />
+          <ErrorBoundary fallbackTitle="Probability Simulator Paused">
+            <ProbabilityView
+              onSaveExperiment={handleSaveExperiment}
+              restoredExperiment={restoredExperiment?.type === 'probability' ? restoredExperiment : null}
+              onContextChange={handleExplainerContextChange}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ===================================================================
             3. PHYSICS DISCIPLINE (Independent Physics Kinematics & Rocket Launch)
             =================================================================== */}
         {activeDiscipline === 'physics' && (
-          <ProjectileView
-            onSaveExperiment={handleSaveExperiment}
-            restoredExperiment={restoredExperiment?.type === 'projectile' ? restoredExperiment : null}
-            onContextChange={handleExplainerContextChange}
-          />
+          <ErrorBoundary fallbackTitle="Physics Simulator Paused">
+            <ProjectileView
+              onSaveExperiment={handleSaveExperiment}
+              restoredExperiment={restoredExperiment?.type === 'projectile' ? restoredExperiment : null}
+              onContextChange={handleExplainerContextChange}
+            />
+          </ErrorBoundary>
         )}
 
         {/* ===================================================================
             4. SIMXPACK STUDIO (Compression, Safe Inspection & AWS Cloud Sync)
             =================================================================== */}
         {activeDiscipline === 'simxpack' && (
-          <PacksView
-            experiments={savedExperiments}
-            packages={packages}
-            onSavePackage={handleSavePackage}
-            onDeletePackage={handleDeletePackage}
-            onExperimentsImported={handleImportComplete}
-            onDownloadPackage={handleDownloadPackage}
-            onUploadPackageToCloud={handleUploadPackageToCloud}
-          />
+          <ErrorBoundary fallbackTitle="SimXPack Studio Paused">
+            <PacksView
+              experiments={savedExperiments}
+              packages={packages}
+              onSavePackage={handleSavePackage}
+              onDeletePackage={handleDeletePackage}
+              onExperimentsImported={handleImportComplete}
+              onDownloadPackage={handleDownloadPackage}
+              onUploadPackageToCloud={handleUploadPackageToCloud}
+            />
+          </ErrorBoundary>
         )}
       </main>
 

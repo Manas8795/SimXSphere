@@ -11,6 +11,7 @@ import { Molecule3DViewer } from './Molecule3DViewer';
 import { buildWorkplaneExplainerContext } from '../core/explainer/context-builders/chemistryContext';
 import type { SimulationExplainerContext } from '../core/explainer/types';
 import type { ChemistryExperiment } from '../core/experiment/types';
+import { safeRandomUUID } from '../core/crypto/uuid';
 
 interface WorkplaneLabProps {
   onSaveRun?: (title: string, details: string, tag: string) => void;
@@ -300,7 +301,7 @@ export const WorkplaneLab: React.FC<WorkplaneLabProps> = ({
         if (onSaveExperiment) {
           const exp: ChemistryExperiment = {
             schemaVersion: 1,
-            id: crypto.randomUUID(),
+            id: safeRandomUUID(),
             type: 'chemistry',
             title: `Synthesis: ${res.compound.formula} (${res.compound.commonName})`,
             description: `${res.compound.synthesisEquation} • ${res.compound.bondType} Bond`,

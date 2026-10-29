@@ -7,6 +7,7 @@ import {
   DEFAULT_EXPLAINER_CONFIG,
 } from './types';
 import { SYSTEM_GROUNDING_PROMPT, buildPromptForIntent } from './prompts';
+import { safeRandomUUID } from '../crypto/uuid';
 
 export interface OllamaHealthResult {
   isOnline: boolean;
@@ -145,7 +146,7 @@ export async function generateExplanation({
     }
 
     return {
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       text,
       intent,
       stateRevision: context.stateRevision,

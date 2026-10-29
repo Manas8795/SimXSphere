@@ -5,6 +5,7 @@ import {
   MAX_SINGLE_PACKAGE_SIZE_BYTES,
 } from '../../../core/simxpack/singlePackage';
 import { importSimXPack } from '../../../core/simxpack/import';
+import { safeRandomUUID } from '../../../core/crypto/uuid';
 
 interface ImportDialogProps {
   existingExperiments: ExperimentRun[];
@@ -100,7 +101,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
       if (isDuplicate && conflictChoice === 'copy') {
         return {
           ...exp,
-          id: crypto.randomUUID(),
+          id: safeRandomUUID(),
           title: `${exp.title} (Imported Copy)`,
           createdAt: new Date().toISOString(),
           metadata: {

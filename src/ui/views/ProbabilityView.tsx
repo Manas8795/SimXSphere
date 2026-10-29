@@ -13,6 +13,7 @@ import { buildProbabilityExplainerContext } from '../../core/explainer/context-b
 import type { SimulationExplainerContext } from '../../core/explainer/types';
 import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
 import { ShareDialog } from '../components/sharing/ShareDialog';
+import { safeRandomUUID } from '../../core/crypto/uuid';
 
 interface ProbabilityViewProps {
   onSaveExperiment: (experiment: ProbabilityExperiment) => void;
@@ -50,7 +51,7 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({
     const results = runProbabilitySimulation(initialParams);
     return {
       schemaVersion: 1,
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       type: 'probability',
       title: 'Fair Coin Toss (1,000 flips)',
       description: 'Standard 50/50 probability test',
@@ -227,7 +228,7 @@ export const ProbabilityView: React.FC<ProbabilityViewProps> = ({
 
       const newExp: ProbabilityExperiment = {
         schemaVersion: 1,
-        id: crypto.randomUUID(),
+        id: safeRandomUUID(),
         type: 'probability',
         title: title.trim() || `${kind === 'coin' ? 'Coin' : 'Die'} Simulation`,
         description: description.trim(),

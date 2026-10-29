@@ -12,6 +12,7 @@ import { buildProjectileExplainerContext } from '../../core/explainer/context-bu
 import type { SimulationExplainerContext } from '../../core/explainer/types';
 import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
 import { ShareDialog } from '../components/sharing/ShareDialog';
+import { safeRandomUUID } from '../../core/crypto/uuid';
 
 interface ProjectileViewProps {
   onSaveExperiment: (experiment: ProjectileExperiment) => void;
@@ -31,7 +32,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({
   const [title, setTitle] = useState<string>('45° Launch at 20 m/s (Earth)');
   const [description, setDescription] = useState<string>('Idealized parabolic trajectory baseline');
   const [expMeta, setExpMeta] = useState<{ id: string; createdAt: string }>(() => ({
-    id: crypto.randomUUID(),
+    id: safeRandomUUID(),
     createdAt: new Date().toISOString(),
   }));
 
@@ -112,7 +113,7 @@ export const ProjectileView: React.FC<ProjectileViewProps> = ({
 
   const handleRun = () => {
     setExpMeta({
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       createdAt: new Date().toISOString(),
     });
     setSaveSuccess(false);

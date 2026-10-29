@@ -9,6 +9,7 @@ import { buildChemistryExplainerContext } from '../../core/explainer/context-bui
 import type { SimulationExplainerContext } from '../../core/explainer/types';
 import { createSingleSimXPackage, triggerFileDownload } from '../../core/simxpack/singlePackage';
 import { ShareDialog } from '../components/sharing/ShareDialog';
+import { safeRandomUUID } from '../../core/crypto/uuid';
 
 interface ChemistryViewProps {
   onSaveExperiment: (exp: ChemistryExperiment) => void;
@@ -120,7 +121,7 @@ export const ChemistryView: React.FC<ChemistryViewProps> = ({
     const phText = reactionResult.finalPh !== null ? ` Final pH: ${reactionResult.finalPh.toFixed(2)}` : ' Final pH: Unmodeled mixture';
     return {
       schemaVersion: 1,
-      id: crypto.randomUUID(),
+      id: safeRandomUUID(),
       type: 'chemistry',
       title: `Aqueous: ${reagentA.name} + ${reagentB.name}`,
       description: `${reactionResult.reactionType}: ${reactionResult.balancedEquation}.${phText}`,

@@ -16,6 +16,7 @@ import type {
 } from '../experiment/types';
 import { serializeCanonicalJson } from '../experiment/serialize';
 import { computeSha256 } from '../crypto/sha256';
+import { safeRandomUUID } from '../crypto/uuid';
 import { exportProbabilityCsv, exportProjectileCsv } from './csv';
 import { createZipArchive, type ZipFileEntry } from './zip';
 import { validateExperimentRun } from '../experiment/validate';
@@ -69,7 +70,7 @@ export async function exportSimXPack(
     }
   }
 
-  const collectionId = options.collection.id || crypto.randomUUID();
+  const collectionId = options.collection.id || safeRandomUUID();
   const collectionName = (options.collection.name || 'SimXPack Collection').trim().slice(0, 80);
   const collectionDesc = (options.collection.description || '').trim().slice(0, 500);
 
